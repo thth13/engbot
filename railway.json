@@ -1,19 +1,19 @@
 {
   "$schema": "https://railway.com/railway.schema.json",
   "build": {
-    "builder": "DOCKERFILE",
-    "dockerfilePath": "apps/bot/Dockerfile",
+    "builder": "RAILPACK",
+    "buildCommand": "true",
     "watchPatterns": [
       "/apps/bot/**",
       "/packages/core/**",
       "/package.json",
       "/package-lock.json",
       "/tsconfig.base.json",
-      "/railway.json",
-      "/.dockerignore"
+      "/railway.json"
     ]
   },
   "deploy": {
+    "startCommand": "npm run start:bot",
     "healthcheckPath": "/health",
     "healthcheckTimeout": 120,
     "restartPolicyType": "ON_FAILURE",

@@ -49,16 +49,18 @@ Production-бот должен открывать production-домен. Для 
 
 Создать сервис из того же GitHub-репозитория:
 
-| Настройка                    | Значение                                       |
-| ---------------------------- | ---------------------------------------------- |
-| Root Directory               | Корень репозитория, не `apps/bot`              |
-| Config File                  | `/railway.json` (определяется автоматически)   |
-| Builder                      | Dockerfile                                     |
-| Dockerfile                   | `apps/bot/Dockerfile`                          |
-| Custom Build / Start Command | Не задавать, используются Dockerfile и его CMD |
-| Healthcheck                  | `/health`                                      |
+| Настройка      | Значение                                     |
+| -------------- | -------------------------------------------- |
+| Root Directory | Корень репозитория, не `apps/bot`            |
+| Config File    | `/railway.json` (определяется автоматически) |
+| Builder        | Railpack                                     |
+| Build Command  | `true` — пропуск компиляции                  |
+| Start Command  | `npm run start:bot`                          |
+| Healthcheck    | `/health`                                    |
 
-Корневой `railway.json` уже задаёт Dockerfile, healthcheck и перезапуск при ошибке. Docker устанавливает production-зависимости бота и общего пакета, без Next.js. Веб не собирается и не запускается на Railway. `tsx` включён в production-зависимости бота.
+Корневой `railway.json` уже задаёт Railpack, команды, healthcheck и перезапуск при ошибке. Railpack устанавливает Node.js и npm-зависимости монорепозитория по lockfile. Dockerfile и локальный Docker не нужны. Зависимости веба могут устанавливаться вместе с остальными workspaces, но веб не собирается и не запускается на Railway.
+
+Команда `true` переопределяет автоматический шаг сборки, чтобы Railway не выполнил корневой `npm run build`, предназначенный для Vercel. Затем `npm run start:bot` запускает Node.js-бота через `tsx`, включённый в production-зависимости. Если сервис уже создавался с Dockerfile, удалить старые ручные переопределения Dockerfile/Build/Start в настройках сервиса и выполнить Redeploy с новой конфигурацией.
 
 Добавить переменные:
 
@@ -113,6 +115,7 @@ Webhook обрабатывает AI синхронно и отвечает по�
 ## Источники
 
 - [Vercel: настройки монорепозитория и доступ к общим файлам](https://vercel.com/docs/monorepos/monorepo-faq)
+- [Railway: автоматическая установка и команды запуска](https://docs.railway.com/builds/build-and-start-commands)
 - [Railway: конфигурация в репозитории](https://docs.railway.com/config-as-code/reference)
 - [Railway: PORT и healthcheck](https://docs.railway.com/deployments/healthchecks)
 - [Telegram: регистрация webhook](https://core.telegram.org/bots/api#setwebhook)

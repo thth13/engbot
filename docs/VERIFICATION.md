@@ -1,5 +1,13 @@
 # Verification evidence
 
+## Railway without Dockerfile (2026-09-24)
+
+- Removed `apps/bot/Dockerfile` and `.dockerignore`.
+- Switched `railway.json` to Railpack with `buildCommand: "true"` to skip the root web build, and `startCommand: "npm run start:bot"`.
+- Updated deployment instructions; reviewed configuration and script paths statically.
+- No build, application startup, tsc or live deployment performed for this change.
+- The Docker-specific dependency-plan check below describes the previous configuration, not the current Railpack install.
+
 ## Workspace split (2026-09-24)
 
 - Split into `@engbot/web`, `@engbot/bot`, and `@engbot/core`; updated root npm lockfile with installation lifecycle scripts disabled.
