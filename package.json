@@ -1,0 +1,33 @@
+{
+  "name": "engbot",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "node --env-file-if-exists=.env.local scripts/dev.mjs web",
+    "dev:bot": "node --env-file-if-exists=.env.local scripts/dev.mjs bot",
+    "build": "npm run build --workspace @engbot/web",
+    "start": "npm run start --workspace @engbot/web",
+    "start:bot": "npm run start --workspace @engbot/bot",
+    "lint": "eslint .",
+    "telegram:setup": "node --env-file-if-exists=.env.local scripts/telegram-setup.mjs",
+    "db:indexes": "node --env-file-if-exists=.env.local scripts/mongo-indexes.mjs",
+    "format": "prettier --write ."
+  },
+  "dependencies": {
+    "mongodb": "^6.20.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "eslint": "^9.0.0",
+    "eslint-config-next": "^16.0.0",
+    "prettier": "^3.9.6",
+    "typescript": "^5.9.0"
+  },
+  "engines": {
+    "node": ">=22.9.0"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ]
+}

@@ -1,0 +1,958 @@
+> Я хочу создать Telegram-бота + Telegram Mini App / Web App для изучения английского языка.
+>
+> Это не должен быть очередной клон Duolingo и не просто чат с ChatGPT.
+>
+> Главная концепция продукта:
+>
+> **AI English Coach that learns from your mistakes.**
+>
+> Пользователь общается с AI на английском текстом или голосом. AI анализирует каждое сообщение, исправляет ошибки, объясняет их, сохраняет слабые места пользователя и затем автоматически строит дальнейшие упражнения вокруг конкретных ошибок этого человека.
+>
+> Главный learning loop продукта:
+>
+> **Talk → Find mistakes → Save mistakes → Generate exercises → Spaced repetition → Talk again → Measure improvement**
+>
+> Telegram должен быть главным инструментом ежедневного взаимодействия и формирования привычки, а Web App / Telegram Mini App должен быть местом для подробной статистики, ошибок, словаря, прогресса и тренировок.
+>
+> ---
+>
+> ## 1. Основная идея продукта
+>
+> Пользователь может просто написать боту сообщение на английском:
+>
+> `I go yesterday to shop`
+>
+> Бот должен проанализировать его и ответить примерно так:
+>
+> ❌ You said:
+> `I go yesterday to shop`
+>
+> ✅ Correct:
+> `I went to the shop yesterday.`
+>
+> 💡 Explanation:
+> После `yesterday` нужно использовать Past Simple. Прошедшая форма `go` — `went`.
+>
+> Затем AI может сразу дать короткое закрепляющее упражнение:
+>
+> `Translate: Вчера я пошёл в спортзал.`
+>
+> Таким образом, любое обычное общение с ботом потенциально превращается в обучение.
+>
+> ---
+>
+> ## 2. Главная уникальная механика — Personal Mistake Bank
+>
+> Каждую значимую ошибку пользователя нужно сохранять.
+>
+> Для каждой ошибки желательно хранить:
+>
+> * original sentence
+> * corrected sentence
+> * explanation
+> * mistake category
+> * grammar topic
+> * wrong fragment
+> * correct fragment
+> * date
+> * number of повторений этой ошибки
+> * mastery score
+> * last practiced
+> * next review date
+>
+> Например:
+>
+> `go → went`
+> Category: Past Simple
+> Occurrences: 6
+>
+> `do/does`
+> Category: Present Simple
+> Occurrences: 4
+>
+> `a/the`
+> Category: Articles
+> Occurrences: 11
+>
+> `in/on/at`
+> Category: Prepositions
+> Occurrences: 7
+>
+> Пользователь должен иметь возможность открыть:
+>
+> **My Mistakes**
+>
+> и увидеть свои самые частые проблемы.
+>
+> Например:
+>
+> Articles — 31 mistakes
+> Past Simple — 17 mistakes
+> Prepositions — 12 mistakes
+> Word order — 8 mistakes
+>
+> Добавить кнопку:
+>
+> **Practice my mistakes**
+>
+> После нажатия AI генерирует упражнения именно на основе реальных ошибок пользователя.
+>
+> Это одна из ключевых функций продукта.
+>
+> ---
+>
+> ## 3. AI Conversation
+>
+> Сделать возможность свободно общаться с AI.
+>
+> Поддержать:
+>
+> * text messages
+> * voice messages
+>
+> Пользователь также должен иметь возможность выбрать сценарий разговора.
+>
+> Примеры сценариев:
+>
+> * Free conversation
+> * Daily life
+> * Coffee shop
+> * Restaurant
+> * Airport
+> * Travel
+> * Small talk
+> * Dating
+> * Talking to coworker
+> * Job interview
+> * Software developer interview
+>
+> У каждого сценария может быть свой AI system prompt.
+>
+> AI должен поддерживать разговор и при этом анализировать английский пользователя.
+>
+> Важно: не нужно превращать каждый ответ в огромный урок.
+>
+> Conversation UX должен оставаться естественным.
+>
+> Например:
+>
+> 1. ответить по смыслу сообщения;
+> 2. коротко показать одну-две наиболее важные ошибки;
+> 3. сохранить ошибки в Mistake Bank.
+>
+> ---
+>
+> ## 4. Correction system
+>
+> Для сообщений пользователя AI должен уметь возвращать structured output.
+>
+> Например:
+>
+> ```json
+> {
+>   "reply": "Sounds good! What did you buy?",
+>   "hasMistakes": true,
+>   "original": "Yesterday I go to shop",
+>   "corrected": "Yesterday I went to the shop.",
+>   "naturalVersion": "Yesterday I went to the store.",
+>   "mistakes": [
+>     {
+>       "type": "grammar",
+>       "category": "Past Simple",
+>       "wrong": "go",
+>       "correct": "went",
+>       "explanation": "Use Past Simple for finished actions in the past."
+>     }
+>   ]
+> }
+> ```
+>
+> Сделать отдельный сервис / слой для общения с LLM.
+>
+> Не связывать UI напрямую с конкретным AI provider.
+>
+> Архитектура должна позволять потом переключиться между OpenAI / Anthropic / Gemini или другой моделью.
+>
+> ---
+>
+> ## 5. Natural English
+>
+> AI должен различать:
+>
+> **Correct English**
+>
+> и
+>
+> **Natural English**
+>
+> Например:
+>
+> User:
+>
+> `I am working in this company 5 years`
+>
+> Correction:
+>
+> `I've been working at this company for five years.`
+>
+> Но в некоторых случаях грамматически правильное предложение может звучать неестественно.
+>
+> Поэтому показывать при необходимости:
+>
+> * What you said
+> * Correct version
+> * Natural version
+>
+> Natural version должна показывать, как фразу скорее сказал бы носитель языка.
+>
+> ---
+>
+> ## 6. Vocabulary
+>
+> Сделать персональный словарь:
+>
+> **My Vocabulary**
+>
+> Пользователь может добавить слово из разговора кнопкой:
+>
+> `+ Learn`
+>
+> Для слова сохранить:
+>
+> * word
+> * translation
+> * definition
+> * example sentence
+> * example based on user's context if possible
+> * date added
+> * mastery level
+> * next review date
+>
+> Позже слова автоматически использовать в упражнениях.
+>
+> Очень важно:
+>
+> пользователь должен учить не случайный словарь из базы, а преимущественно слова, которые он сам встретил во время общения.
+>
+> ---
+>
+> ## 7. Spaced Repetition
+>
+> Реализовать простую систему интервальных повторений.
+>
+> Например:
+>
+> новая ошибка / слово:
+>
+> Day 0
+> → Day 1
+> → Day 3
+> → Day 7
+> → Day 14
+> → Day 30
+>
+> В зависимости от правильности ответа interval должен увеличиваться или уменьшаться.
+>
+> Не нужно на первом этапе реализовывать сложный Anki/SM-2 алгоритм.
+>
+> Сделать простую, понятную abstraction, чтобы алгоритм можно было заменить позже.
+>
+> Spaced repetition использовать одновременно для:
+>
+> * vocabulary
+> * grammar mistakes
+> * common constructions
+>
+> ---
+>
+> ## 8. Voice Messages
+>
+> Telegram-бот должен принимать голосовые сообщения.
+>
+> Flow:
+>
+> Voice message
+> ↓
+> Speech-to-text
+> ↓
+> Transcript
+> ↓
+> Grammar analysis
+> ↓
+> Correction
+> ↓
+> AI response
+>
+> Пользователь получает, например:
+>
+> 🎤 You said:
+>
+> `Yesterday I was go to my friend`
+>
+> ✅ Correction:
+>
+> `Yesterday I went to my friend's place.`
+>
+> ✨ Natural English:
+>
+> `Yesterday I went over to my friend's place.`
+>
+> Ошибки также сохраняются в Mistake Bank.
+>
+> Архитектуру Speech-to-Text вынести в отдельный сервис.
+>
+> ---
+>
+> ## 9. Daily Challenge
+>
+> Telegram должен использоваться для формирования ежедневной привычки.
+>
+> Раз в день пользователь получает короткое задание.
+>
+> Например:
+>
+> 🔥 Day 14
+>
+> Today's English: 5 min
+>
+> 🎤 Tell me what you did yesterday.
+>
+> Или:
+>
+> Translate:
+>
+> `Хотя я устал, я продолжил работать.`
+>
+> Или упражнение, основанное на предыдущих ошибках пользователя.
+>
+> После выполнения:
+>
+> `+25 XP`
+>
+> `🔥 14 day streak`
+>
+> Daily Challenge должен по возможности генерироваться на основе:
+>
+> 1. старых ошибок;
+> 2. vocabulary;
+> 3. слабых grammar topics;
+> 4. интересов пользователя.
+>
+> ---
+>
+> ## 10. Streak + XP
+>
+> Добавить простую геймификацию:
+>
+> * XP
+> * current streak
+> * longest streak
+> * daily goal
+> * level
+>
+> XP пользователь получает за:
+>
+> * conversations
+> * exercises
+> * vocabulary reviews
+> * daily challenge
+> * voice practice
+>
+> Не нужно превращать MVP в игру.
+>
+> Геймификация должна помогать удержанию пользователя, а не становиться центральной частью продукта.
+>
+> ---
+>
+> ## 11. User level
+>
+> При первом запуске пользователь проходит короткий onboarding.
+>
+> Спросить:
+>
+> * native language
+> * English level
+> * learning goal
+> * interests
+> * daily goal
+>
+> Levels:
+>
+> * A1
+> * A2
+> * B1
+> * B2
+> * C1
+>
+> Можно добавить вариант:
+>
+> `I don't know my level`
+>
+> В таком случае провести небольшой placement test.
+>
+> Для MVP placement test может состоять примерно из 10 вопросов.
+>
+> ---
+>
+> ## 12. Learning goals
+>
+> При onboarding пользователь выбирает цель:
+>
+> * Speak confidently
+> * Travel
+> * Work
+> * Job interviews
+> * Move abroad
+> * Understand movies/content
+> * Improve grammar
+> * Expand vocabulary
+>
+> Эти данные использовать в AI prompts и генерации упражнений.
+>
+> ---
+>
+> ## 13. Web App / Telegram Mini App
+>
+> Web App не должен быть просто вторым интерфейсом AI Chat.
+>
+> Его главная задача:
+>
+> **дать пользователю картину его прогресса.**
+>
+> Основные страницы:
+>
+> ### Dashboard
+>
+> Показать:
+>
+> English Level:
+> `A2 → B1`
+>
+> Vocabulary:
+> `728 words`
+>
+> Speaking:
+> `42 min this week`
+>
+> Grammar accuracy:
+> `71%`
+>
+> Current streak:
+> `🔥 18 days`
+>
+> XP:
+> `2340 XP`
+>
+> Далее блок:
+>
+> **Weakest Skills**
+>
+> 🔴 Articles — 54%
+>
+> 🟠 Present Perfect — 62%
+>
+> 🟢 Past Simple — 87%
+>
+> Далее:
+>
+> **Most Common Mistakes**
+>
+> ❌ I didn't went
+>
+> ✅ I didn't go
+>
+> `You made this mistake 8 times`
+>
+> ---
+>
+> ## 14. My Mistakes Page
+>
+> Сделать отдельную страницу ошибок.
+>
+> Фильтры:
+>
+> * All
+> * Grammar
+> * Vocabulary
+> * Articles
+> * Tenses
+> * Prepositions
+> * Word order
+>
+> Для каждой ошибки показывать:
+>
+> * original phrase
+> * corrected phrase
+> * explanation
+> * number of occurrences
+> * mastery
+>
+> Добавить:
+>
+> **Practice**
+>
+> и
+>
+> **Practice all weak areas**
+>
+> ---
+>
+> ## 15. Vocabulary Page
+>
+> Список сохранённых слов.
+>
+> Tabs:
+>
+> * Learning
+> * Review today
+> * Mastered
+>
+> Для слова показывать:
+>
+> word
+> translation
+> example
+> mastery
+> next review
+>
+> Добавить кнопку:
+>
+> **Practice vocabulary**
+>
+> ---
+>
+> ## 16. Practice Mode
+>
+> AI должен уметь генерировать разные упражнения.
+>
+> Например:
+>
+> ### Translation
+>
+> Translate:
+>
+> `Вчера я пошёл в магазин.`
+>
+> ### Fill the gap
+>
+> Yesterday I ___ to the store.
+>
+> ### Fix the mistake
+>
+> `I didn't went there.`
+>
+> ### Choose correct option
+>
+> I have lived here ___ five years.
+>
+> * since
+> * for
+> * during
+>
+> ### Free answer
+>
+> Tell me what you did last weekend.
+>
+> Упражнения должны генерироваться преимущественно на основе персональных слабостей пользователя.
+>
+> ---
+>
+> ## 17. Skill System
+>
+> Создать внутреннюю систему навыков пользователя.
+>
+> Например:
+>
+> English
+>
+> Grammar
+>
+> * Present Simple
+> * Present Continuous
+> * Past Simple
+> * Present Perfect
+> * Articles
+> * Prepositions
+> * Word order
+>
+> Vocabulary
+>
+> * Everyday
+> * Work
+> * Travel
+> * Technology
+>
+> Speaking
+>
+> * Grammar
+> * Vocabulary
+> * Fluency
+>
+> Для каждого skill хранить условный mastery score от 0 до 100.
+>
+> Например:
+>
+> Present Simple — 92%
+> Past Simple — 76%
+> Present Perfect — 41%
+> Articles — 54%
+>
+> Не нужно пытаться сделать scientifically perfect scoring.
+>
+> Для MVP достаточно простой эвристики, но architecture должна позволять улучшить алгоритм позже.
+>
+> ---
+>
+> ## 18. AI Coach Weekly Report
+>
+> Реализовать систему weekly report.
+>
+> Например:
+>
+> 📊 Your English this week
+>
+> You studied: 84 min
+>
+> New words: 31
+>
+> Conversations: 7
+>
+> Exercises: 54
+>
+> Your biggest problem:
+>
+> Articles
+>
+> Last week: 58%
+> This week: 69% ↑
+>
+> Recommended focus:
+>
+> Articles + speaking about work
+>
+> Weekly report должен генерироваться из реальной статистики пользователя.
+>
+> ---
+>
+> ## 19. Recommended Practice
+>
+> На Dashboard показать:
+>
+> **Recommended for you**
+>
+> AI может предложить:
+>
+> `Practice Articles — 5 min`
+>
+> `Review 8 vocabulary words`
+>
+> `Talk about your work — 5 min`
+>
+> `Practice Past Simple`
+>
+> Recommendation engine для MVP можно построить простой эвристикой:
+>
+> выбирать skills с самым низким mastery + overdue spaced repetition items.
+>
+> ---
+>
+> ## 20. Suggested product navigation
+>
+> Для Web App:
+>
+> * Home
+> * Practice
+> * Chat
+> * Mistakes
+> * Vocabulary
+> * Progress
+> * Profile
+>
+> Для мобильного интерфейса использовать bottom navigation.
+>
+> ---
+>
+> ## 21. Telegram Bot commands
+>
+> Не перегружать бота командами.
+>
+> Основные:
+>
+> `/start`
+>
+> `/practice`
+>
+> `/mistakes`
+>
+> `/words`
+>
+> `/progress`
+>
+> `/settings`
+>
+> Большую часть взаимодействия делать через inline keyboard / buttons.
+>
+> ---
+>
+> ## 22. Основной MVP
+>
+> НЕ пытайся сразу реализовать полный аналог Duolingo.
+>
+> Для первой рабочей версии приоритет следующий.
+>
+> P0:
+>
+> 1. Authentication через Telegram
+> 2. User onboarding
+> 3. Text AI conversation
+> 4. AI correction structured output
+> 5. Mistake Bank
+> 6. Practice mistakes
+> 7. Vocabulary
+> 8. Simple spaced repetition
+> 9. Dashboard
+> 10. Streak / XP
+>
+> P1:
+>
+> 11. Voice messages
+> 12. Daily Challenge
+> 13. Conversation scenarios
+> 14. Skill mastery
+> 15. Weekly reports
+>
+> P2:
+>
+> 16. Advanced pronunciation analysis
+> 17. Advanced placement testing
+> 18. Achievements
+> 19. Social features
+> 20. Leaderboards
+>
+> Сначала реализуй P0.
+>
+> ---
+>
+> ## 23. Technical architecture
+>
+> Я предпочитаю TypeScript stack.
+>
+> Предлагаемая архитектура:
+>
+> ### Frontend / Web App
+>
+> * Next.js
+> * TypeScript
+> * React
+> * Tailwind CSS
+> * responsive mobile-first design
+>
+> ### Backend
+>
+> Можно использовать:
+>
+> * Next.js API / server actions
+>
+> либо отдельный:
+>
+> * Node.js
+> * NestJS
+>
+> Выбери наиболее разумный вариант для MVP и не усложняй архитектуру без необходимости.
+>
+> ### Database
+>
+> Prefer PostgreSQL.
+>
+> ORM:
+>
+> Prisma.
+>
+> ### Telegram
+>
+> Telegram Bot API.
+>
+> Можно использовать grammY / Telegraf, если это упрощает разработку.
+>
+> ### AI
+>
+> Сделать abstraction:
+>
+> `AIProvider`
+>
+> Например:
+>
+> ```ts
+> interface AIProvider {
+>   analyzeMessage(...)
+>   generateExercise(...)
+>   generateConversationReply(...)
+>   generateWeeklyReport(...)
+> }
+> ```
+>
+> Реализацию конкретной модели вынести отдельно.
+>
+> ---
+>
+> ## 24. Suggested DB entities
+>
+> Продумай нормальную schema, но примерно нужны:
+>
+> User
+>
+> UserSettings
+>
+> Conversation
+>
+> Message
+>
+> Mistake
+>
+> MistakeOccurrence
+>
+> VocabularyItem
+>
+> Skill
+>
+> UserSkill
+>
+> Exercise
+>
+> ExerciseAttempt
+>
+> DailyActivity
+>
+> Streak
+>
+> XPTransaction
+>
+> ReviewItem
+>
+> WeeklyReport
+>
+> Не нужно создавать таблицы просто ради таблиц.
+>
+> Если несколько сущностей логично объединить — можно упростить.
+>
+> ---
+>
+> ## 25. Important product principles
+>
+> Следуй этим принципам:
+>
+> ### 1. Personalization first
+>
+> Пользователь должен чувствовать:
+>
+> `This app knows what I struggle with.`
+>
+> ### 2. Mistakes are content
+>
+> Главный обучающий контент создают реальные ошибки пользователя.
+>
+> ### 3. Conversation first
+>
+> Не заставлять пользователя проходить 50 экранов теории перед тем, как начать пользоваться продуктом.
+>
+> ### 4. Short sessions
+>
+> Большинство взаимодействий должны занимать 2–10 минут.
+>
+> ### 5. Telegram = habit
+>
+> Telegram отвечает за:
+>
+> reminders
+> daily challenge
+> quick conversations
+> voice practice
+>
+> ### 6. Web App = understanding progress
+>
+> Web App отвечает за:
+>
+> dashboard
+> mistakes
+> vocabulary
+> progress
+> practice
+>
+> ---
+>
+> ## 26. UX / UI
+>
+> Интерфейс должен быть:
+>
+> * clean
+> * modern
+> * minimalistic
+> * mobile-first
+> * friendly
+> * немного gamified
+>
+> Не делать детский визуальный стиль.
+>
+> Это должен быть продукт, которым комфортно пользоваться и студенту, и взрослому специалисту.
+>
+> Избегать перегруженности.
+>
+> На каждом экране должен быть один очевидный primary action.
+>
+> Использовать карточки, progress bars, небольшие charts и понятную визуальную hierarchy.
+>
+> ---
+>
+> ## 27. Очень важный UX принцип для AI corrections
+>
+> Не исправлять пользователя настолько агрессивно, чтобы он боялся писать.
+>
+> Если в сообщении 7 ошибок, не обязательно показывать 7 огромных объяснений.
+>
+> В conversation mode:
+>
+> показывать 1–3 наиболее важных correction.
+>
+> Остальные ошибки можно сохранить в Mistake Bank.
+>
+> В Practice Mode можно давать более подробный feedback.
+>
+> ---
+>
+> ## 28. Что нужно сделать сейчас
+>
+> Сначала проанализируй это техническое задание и текущий repository.
+>
+> Не начинай бесконтрольно создавать код.
+>
+> 1. Изучи существующую структуру проекта.
+> 2. Предложи architecture для MVP.
+> 3. Определи основные DB models.
+> 4. Определи routes/pages.
+> 5. Определи Telegram bot architecture.
+> 6. Определи AI service architecture.
+> 7. Разбей разработку на логические этапы.
+> 8. После этого начинай реализацию.
+>
+> При реализации придерживайся production-quality TypeScript:
+>
+> * strict typing
+> * reusable components
+> * separation of concerns
+> * validation
+> * error handling
+> * loading states
+> * empty states
+> * proper environment variables
+> * no hardcoded secrets
+> * clean naming
+>
+> Не overengineer.
+>
+> При выборе между сложным архитектурно идеальным решением и простым поддерживаемым MVP — выбирай простое поддерживаемое решение.
+>
+> Главная цель первой версии продукта:
+>
+> пользователь начинает общаться с AI → AI находит его ошибки → ошибки сохраняются → пользователь получает персональные упражнения → возвращается завтра и продолжает обучение.
+>
+> Именно этот цикл должен заработать первым.
