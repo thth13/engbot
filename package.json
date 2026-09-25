@@ -3,14 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "node --env-file-if-exists=.env.local scripts/dev.mjs web",
-    "dev:bot": "node --env-file-if-exists=.env.local scripts/dev.mjs bot",
+    "dev": "node --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/dev.mjs web",
+    "dev:bot": "npm run dev --workspace @engbot/bot",
     "build": "npm run build --workspace @engbot/web",
     "start": "npm run start --workspace @engbot/web",
     "start:bot": "npm run start --workspace @engbot/bot",
     "lint": "eslint .",
-    "telegram:setup": "node --env-file-if-exists=.env.local scripts/telegram-setup.mjs",
-    "db:indexes": "node --env-file-if-exists=.env.local scripts/mongo-indexes.mjs",
+    "telegram:setup": "node scripts/telegram-setup.mjs",
+    "db:indexes": "node --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/mongo-indexes.mjs",
     "format": "prettier --write ."
   },
   "dependencies": {

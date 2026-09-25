@@ -12,7 +12,7 @@ P1 voice, reminders, scenarios, measured speaking time, weekly report generation
 
 ## Stack
 
-Next.js 16 + React 19 + TypeScript, Tailwind 4 with CSS design tokens. Vercel runs `apps/web`; Railway runs the independent HTTP webhook server in `apps/bot`. Both import domain services from the npm workspace `packages/core`. MongoDB native driver; no Prisma. The bot runs TypeScript with tsx, without a separate compilation step. Transactions require Atlas or a replica set. npm is the package manager.
+Next.js 16 + React 19 + TypeScript, Tailwind 4 with CSS design tokens. Vercel runs `apps/web`; Railway runs the independent long-polling bot in `apps/bot`. Both import domain services from the npm workspace `packages/core`. MongoDB native driver; no Prisma. The bot runs TypeScript with tsx, without a separate compilation step. Transactions require Atlas or a replica set. npm is the package manager.
 
 ## Collections
 
@@ -31,13 +31,13 @@ Recommended indexes are provided by `scripts/mongo-indexes.mjs`. Primary keys pr
 
 UI: `/`, `/chat`, `/mistakes`, `/vocabulary`, `/practice`, `/progress`, `/profile`.
 API: GET `/api/config`, `/api/me`; POST `/api/auth/telegram`, `/api/profile`, `/api/chat`, `/api/vocabulary`, `/api/practice`, `/api/practice/answer`.
-Bot (Railway): POST `/telegram/webhook`; GET `/health` (MongoDB ping).
+Bot (Railway): outgoing Telegram `getUpdates` requests; GET `/health` for internal Railway readiness (polling state and MongoDB ping). No incoming Telegram routes.
 
 The web route dispatcher is intentionally thin. Web-only session authentication is in `apps/web/src/lib/auth.ts`. Framework-independent user creation and limits are in `packages/core/src/users.ts`; validated types in schema.ts, persistence in db.ts, scheduling and transactions in learning.ts, provider in ai.ts. Telegram adapter and HTTP transport are in `apps/bot/src`. Shared core has no Next.js or server-only imports. Only the schema subpath is intended for browser imports; AI, database and learning modules are server code. The Next.js config transpiles the core workspace and traces files from the monorepo root.
 
 ## Authentication and boundaries
 
-Only server-verified Telegram initData can create a session. HMAC is checked in constant time, signed data age at most one hour, future skew at most 30 seconds. Cookie is httpOnly, SameSite Lax, Secure in production. Web mutations require configured application Origin. The independent bot webhook is authenticated with the Telegram secret header. AI provider credentials stay server-side. AI text is untrusted, schema validated and rendered as plain React text.
+Only server-verified Telegram initData can create a session. HMAC is checked in constant time, signed data age at most one hour, future skew at most 30 seconds. Cookie is httpOnly, SameSite Lax, Secure in production. Web mutations require configured application Origin. The bot authenticates outgoing Telegram requests using its server-side bot token. It exposes no inbound Telegram endpoint. AI provider credentials stay server-side. AI text is untrusted, schema validated and rendered as plain React text.
 
 ## Learning behavior
 
@@ -56,7 +56,7 @@ Only server-verified Telegram initData can create a session. HMAC is checked in 
 
 ## Operational limitations
 
-The synchronous webhook runs on Railway and only acknowledges after processing. Its HTTP socket timeout is 120 seconds; incoming request bodies are limited to 64 KiB and 20 seconds. SIGTERM stops new requests and drains active requests for up to 75 seconds, subject to the hosting platform termination grace period. The web API retains maxDuration=60 on Vercel. Durable queues/outbox and Telegram sendMessage reconciliation are future production hardening: Telegram has no sendMessage idempotency key, so a crash after delivery but before marking sent can cause a duplicate outbound reply. Learning writes remain idempotent. A processing lease allows interrupted requests to be retried; provider work may be repeated after lease expiration. MongoDB transactions prevent partially persisted learning updates. No automated retention or deletion policy is invented.
+The bot deletes the old webhook without dropping pending updates and uses long polling (30-second Telegram wait, 45-second fetch deadline). Updates are processed sequentially; offset advances only after successful processing or explicitly skipping an unsupported payload. A failed update is retried before later messages. Offset is in memory: after restart Telegram can redeliver unconfirmed messages; MongoDB delivery state handles already-sent updates. Transient failures retry with a delay; 429 respects retry_after, 409 reports conflicting pollers, invalid tokens stop the process. Run one process per token, without platform sleeping. SIGTERM aborts the pending poll and waits for current message processing before closing MongoDB, with a 75-second deadline subject to host termination grace. HTTP remains only for healthchecks. The web API retains maxDuration=60 on Vercel. Durable queues/outbox and Telegram sendMessage reconciliation are future production hardening: Telegram has no sendMessage idempotency key, so a crash after delivery but before marking sent can cause a duplicate outbound reply. Learning writes remain idempotent. A processing lease allows interrupted requests to be retried; provider work may be repeated after lease expiration. MongoDB transactions prevent partially persisted learning updates. No automated retention or deletion policy is invented.
 
 ## Sources checked during implementation
 

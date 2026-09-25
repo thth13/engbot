@@ -1,5 +1,19 @@
 # Verification evidence
 
+## Long polling migration (2026-09-25)
+
+- Replaced the bot webhook endpoint with outgoing getUpdates polling and startup deleteWebhook without dropping pending updates.
+- Offset advances only after processing; retries and shutdown preserve pending work. HTTP remains only for /health.
+- Removed webhook URL and secret from env files without changing other values. Setup script now configures only the menu and commands.
+- No bot startup, build, tsc, live message processing or Telegram mutation performed during implementation. Older webhook checks below are historical.
+
+## Bot Node types and environment loading (2026-09-25)
+
+- Explicit `types: ["node"]` in the shared TypeScript config used by bot and core; both workspaces now declare their Node types and TypeScript development dependencies.
+- Bot start/dev preload optional workspace and root `.env.local`/`.env` files, preserving existing process variables. No secrets were edited.
+- Root web development and maintenance scripts also accept `.env` in addition to `.env.local`.
+- npm lockfile updated without lifecycle scripts. Build, bot startup and tsc not run; editor diagnostics need rechecking after the TypeScript server reloads.
+
 ## Railway without Dockerfile (2026-09-24)
 
 - Removed `apps/bot/Dockerfile` and `.dockerignore`.
