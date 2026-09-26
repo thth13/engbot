@@ -9,6 +9,10 @@ import {
 } from "./schema";
 import { HttpError } from "./errors";
 export interface AIProvider {
+  startConversation(
+    settings: Settings,
+    history: { text: string; reply: string }[],
+  ): Promise<{ text: string }>;
   analyzeMessage(
     text: string,
     settings: Settings,
@@ -123,8 +127,18 @@ class OpenAIProvider implements AIProvider {
   ) {
     return this.structured(
       correctionSchema,
-      "Reply naturally in English, briefly. Analyze ONLY the current message. Explain corrections and translate vocabulary in the native language from settings. Preserve intended meaning. Do not invent mistakes. Return all significant mistakes (at most 12); category is a consistent English grammar topic. Corrected is grammatical English; naturalVersion is idiomatic English. Suggest up to 3 useful words occurring in the conversation. If level is unknown, use A2 language without claiming assessment.",
+      "Reply naturally in English, briefly. Be an engaged conversation partner: react to the actual answer, use their interests and goal, and keep the conversation going with one relevant follow-up question or a concrete new angle when the topic is exhausted. Match their English level. Avoid repetitive interviews and generic praise. Analyze ONLY the current message. Explain corrections and translate vocabulary in the native language from settings. Preserve intended meaning. Do not invent mistakes. Return all significant mistakes (at most 12); category is a consistent English grammar topic. Corrected is grammatical English; naturalVersion is idiomatic English. Suggest up to 3 useful words occurring in the conversation. If level is unknown, use A2 language without claiming assessment.",
       { text, settings, history },
+    );
+  }
+  startConversation(
+    settings: Settings,
+    history: { text: string; reply: string }[],
+  ) {
+    return this.structured(
+      z.object({ text: z.string().min(1).max(1200) }),
+      "Start a friendly English conversation yourself. Use the learner's interests, goal and level (A2 if unknown). Offer a specific playful scenario, small dilemma or interesting question, varying topics from recent history. Write 1–3 short sentences and ONE easy-to-answer question. Do not ask what they want to discuss, repeat recent questions, fabricate personal experiences or claim current news. For A1/A2 use simple everyday language. No corrections, scores, reminders or sales pitch.",
+      { settings, history },
     );
   }
   generateExercise(source: unknown, settings: Settings) {

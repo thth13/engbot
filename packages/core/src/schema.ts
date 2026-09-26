@@ -70,6 +70,22 @@ export const gradeSchema = z.object({
   correct: z.boolean(),
   feedback: z.string().min(1).max(1000),
 });
+export interface BotDraft {
+  revision: string;
+  step: number;
+  settings: Partial<Settings>;
+  hour?: number | null;
+}
+export interface BotReply {
+  text: string;
+  reply_markup?: {
+    inline_keyboard: {
+      text: string;
+      callback_data?: string;
+      web_app?: { url: string };
+    }[][];
+  };
+}
 export interface User {
   _id: string;
   name: string;
@@ -79,6 +95,15 @@ export interface User {
   longestStreak: number;
   lastActiveDay: string | null;
   createdAt: Date;
+  bot?: {
+    chatId: number;
+    draft?: BotDraft;
+    enabled?: boolean;
+    hour?: number;
+    lastContactAt?: Date;
+    lastPromptDay?: string;
+    leaseUntil?: Date;
+  };
 }
 export interface Review {
   stage: number;

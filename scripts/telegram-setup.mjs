@@ -28,6 +28,10 @@ await call("setChatMenuButton", {
 await call("setMyCommands", {
   commands: [
     { command: "start", description: "Начать" },
+    { command: "topic", description: "Новая тема для разговора" },
+    { command: "pause", description: "Отключить ежедневные разговоры" },
+    { command: "resume", description: "Включить ежедневные разговоры" },
+    { command: "app", description: "Открыть приложение" },
     { command: "practice", description: "Практика" },
     { command: "mistakes", description: "Мои ошибки" },
     { command: "words", description: "Словарь" },

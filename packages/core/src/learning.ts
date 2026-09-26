@@ -95,15 +95,10 @@ export async function analyze(
   const existing = await db.messages.findOne({ _id: id });
   if (existing) return existing.analysis;
   await rateLimit(user._id);
-  const history = await db.messages
-    .find({ userId: user._id })
-    .sort({ createdAt: -1 })
-    .limit(12)
-    .toArray();
   const analysis = await ai.analyzeMessage(
     text,
     settings,
-    history.reverse().map((m) => ({ text: m.text, reply: m.analysis.reply })),
+    await conversationHistory(user._id),
   );
   const session = db.client.startSession();
   try {
@@ -287,4 +282,44 @@ export async function snapshot(user: User) {
     },
     today,
   };
+}
+
+// Include bot-initiated questions without creating fake learner messages or XP.
+export async function conversationHistory(userId: string) {
+  const db = await database();
+  const [messages, starters] = await Promise.all([
+    db.messages.find({ userId }).sort({ createdAt: -1 }).limit(12).toArray(),
+    db.starters
+      .find({ userId, sentAt: { $exists: true } })
+      .sort({ createdAt: -1 })
+      .limit(12)
+      .toArray(),
+  ]);
+  return [
+    ...messages.map((m) => ({
+      text: m.text,
+      reply: m.analysis.reply,
+      at: m.createdAt,
+    })),
+    ...starters.map((m) => ({ text: "", reply: m.text, at: m.sentAt! })),
+  ]
+    .sort((a, b) => a.at.getTime() - b.at.getTime())
+    .slice(-16)
+    .map(({ text, reply }) => ({ text, reply }));
+}
+export async function conversationStarter(user: User, id: string) {
+  const db = await database();
+  const existing = await db.starters.findOne({ _id: id });
+  if (existing) return existing.text;
+  await rateLimit(user._id);
+  const { text } = await ai.startConversation(
+    requireSettings(user),
+    await conversationHistory(user._id),
+  );
+  await db.starters.updateOne(
+    { _id: id },
+    { $setOnInsert: { userId: user._id, text, createdAt: new Date() } },
+    { upsert: true },
+  );
+  return (await db.starters.findOne({ _id: id }))!.text;
 }

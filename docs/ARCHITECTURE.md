@@ -8,7 +8,7 @@
 4. Vocabulary: save real conversation suggestions and review with the same scheduler.
 5. Companion UI: dashboard, mistakes, vocabulary, practice, progress, profile; bot commands and text conversation.
 
-P1 voice, reminders, scenarios, measured speaking time, weekly report generation are not implemented. No placement test in P0: unknown level uses A2 language provisionally and is displayed as unknown. No inferred CEFR improvement claim.
+P1 voice, measured speaking time and weekly report generation are not implemented. Telegram onboarding and optional scheduled conversation starters are implemented in the bot. No placement test in P0: unknown level uses A2 language provisionally and is displayed as unknown. No inferred CEFR improvement claim.
 
 ## Stack
 
@@ -17,13 +17,14 @@ Next.js 16 + React 19 + TypeScript, Tailwind 4 with CSS design tokens. Vercel ru
 ## Collections
 
 - users: Telegram ID as string primary key; first name; settings including timezone; XP, streak, longest streak, last active local day.
-- messages: user ID, current text, validated AI analysis, timestamp. Deterministic user/request key prevents duplicate learning writes. Last 12 exchanges inform AI; last 30 displayed.
+- messages: user ID, current text, validated AI analysis, timestamp. Deterministic user/request key prevents duplicate learning writes. Recent exchanges and delivered bot conversation starters inform AI (up to 16 chronological entries); last 30 learner messages displayed.
 - mistakes: deterministic user/category/wrong/correct key, most recent source sentence and explanation, occurrence count, shared review state. Raw occurrence history is retained in message analyses.
 - words: deterministic user/normalized-word key, translation, definition, contextual example and shared review state.
 - exercises: generated content including private answer and explanation, source reference, optional single immutable result and attempt timestamp. Answers are never sent before grading.
 - activity: deterministic user/local-date key, XP and counters. Derived skills group mistakes by grammar category. No unnecessary separate skill or XP tables.
 - limits: per-user UTC date bucket, max 100 AI operations per day. Counts include failed provider requests. Deployments should additionally cap request sizes and traffic at the ingress.
-- telegramUpdates: update ID, processing state and cached outbound reply. See operational limitations below.
+- conversationStarters: deterministic request/day key, user ID, generated question, creation and delivery timestamps; no learner XP or message counters.
+- telegramUpdates: update ID, processing state, cached text/inline-button payload and onboarding completion checkpoint. See operational limitations below.
 
 Recommended indexes are provided by `scripts/mongo-indexes.mjs`. Primary keys provide uniqueness from the outset. No client receives other users' data; all selectors include session user ID or a user-scoped deterministic key.
 
@@ -52,7 +53,7 @@ Only server-verified Telegram initData can create a session. HMAC is checked in 
 
 ## Provider
 
-`AIProvider` owns analyzeMessage, generateExercise, gradeAnswer. OpenAI Responses API is the adapter, selected by an explicit server-side export. JSON schema constrains response format; Zod validates again before writes. API key and model are environment configuration. A different provider implements the same interface. No mock responses in production.
+`AIProvider` owns analyzeMessage, startConversation, generateExercise, gradeAnswer. OpenAI Responses API is the adapter, selected by an explicit server-side export. JSON schema constrains response format; Zod validates again before writes. API key and model are environment configuration. A different provider implements the same interface. No mock responses in production.
 
 ## Operational limitations
 
@@ -64,3 +65,9 @@ The bot deletes the old webhook without dropping pending updates and uses long p
 - https://nextjs.org/docs/app/api-reference/functions/cookies
 - https://www.mongodb.com/docs/drivers/node/v6.x/crud/transactions/
 - https://developers.openai.com/api/docs/guides/structured-outputs
+
+## Telegram onboarding and initiative
+
+`onboarding.ts` owns a seven-step profile draft in `users.bot.draft`; each callback carries a random revision. Draft transitions and outbound step payloads commit atomically. The final transition validates the shared settings schema, commits preferences, and checkpoints the first conversation request. Telegram polling subscribes to messages and callback queries. Only explicit section commands attach web-app links.
+
+`conversations.ts` runs alongside polling and checks eligible users once per minute using a database cursor. Eligibility requires opt-in, a private chat ID, a completed profile, no active draft and at least one hour without interaction. It sends during the selected local hour, with a database lease and at most one reserved attempt per local date. Activity and preferences are rechecked after AI generation. Explicit rate limits permit a later retry; blocked bots are disabled. Ambiguous delivery failures keep the date reserved to avoid duplicate unsolicited messages. No catch-up burst occurs after downtime. Shutdown aborts the schedule loop and waits for in-flight work.

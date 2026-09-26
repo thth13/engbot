@@ -47,3 +47,7 @@ No sample stats in authenticated UI. Level comes from self-report, not an inferr
 ## Verification
 
 Static audit artifact: `docs/premium-audit.json`. Runtime, responsive screenshots, build and typecheck are deliberately deferred per user instruction; no runtime quality claim is made.
+
+## Telegram conversation interface
+
+Telegram owns the native message and inline-button appearance. Bot onboarding uses short Russian questions, one persisted step at a time, native callback buttons and Back. Interests accept free text as well as topic presets. Settings share the core schema with the web profile. Ordinary chat replies and daily conversation starters have no website button; explicit app/section commands retain navigation. Conversation prompts use English at the learner's level and explanations use the saved native language.

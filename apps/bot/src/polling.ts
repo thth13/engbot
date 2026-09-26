@@ -61,7 +61,7 @@ export async function pollTelegram(
             offset,
             limit: 1,
             timeout: 30,
-            allowed_updates: ["message"],
+            allowed_updates: ["message", "callback_query"],
           },
           signal,
         ),

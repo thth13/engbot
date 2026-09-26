@@ -1,5 +1,6 @@
 import { createServer } from "node:http";
 import { closeDatabase, database } from "@engbot/core/db";
+import { runConversations } from "./conversations";
 import { pollTelegram } from "./polling";
 
 for (const name of [
@@ -22,6 +23,7 @@ const controller = new AbortController();
 const state = { ready: false };
 let stopping = false;
 let polling: Promise<void> = Promise.resolve();
+let conversations: Promise<void> = Promise.resolve();
 
 // HTTP is used only for Railway healthchecks, never for Telegram messages.
 const server = createServer(async (request, response) => {
@@ -49,7 +51,7 @@ async function shutdown(code = 0) {
   deadline.unref();
   const closed = new Promise<void>((resolve) => server.close(() => resolve()));
   try {
-    await Promise.all([polling, closed]);
+    await Promise.all([polling, conversations, closed]);
     await closeDatabase();
     process.exit(code);
   } catch {
@@ -62,6 +64,7 @@ server.listen(port, "0.0.0.0", () => {
     `Bot healthcheck listening on port ${port}; starting Telegram long polling`,
   );
   polling = pollTelegram(controller.signal, state);
+  conversations = runConversations(controller.signal);
   void polling.catch((error: Error) => {
     console.error(error.message);
     void shutdown(1);

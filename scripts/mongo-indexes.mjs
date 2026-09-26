@@ -4,7 +4,7 @@ const client = new MongoClient(process.env.MONGODB_URI);
 try {
   await client.connect();
   const db = client.db(process.env.MONGODB_DB || "engbot");
-  for (const name of ["messages", "words"])
+  for (const name of ["messages", "words", "conversationStarters"])
     await db.collection(name).createIndex({ userId: 1, createdAt: -1 });
   await db.collection("mistakes").createIndex({ userId: 1, occurrences: -1 });
   for (const name of ["mistakes", "words"])
@@ -15,6 +15,9 @@ try {
   await db
     .collection("exercises")
     .createIndex({ userId: 1, sourceId: 1, attemptedAt: 1 });
+  await db
+    .collection("users")
+    .createIndex({ "bot.enabled": 1, "bot.lastContactAt": 1 });
   console.log("Indexes created.");
 } finally {
   await client.close();

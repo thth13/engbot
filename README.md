@@ -62,3 +62,11 @@ Production: [пошаговый деплой на Vercel и Railway](docs/DEPLOY
 - [Контракт интерфейса](UX-CONTRACT.md)
 
 P1: голос, ежедневные задания/напоминания, сценарии и weekly reports. P2: pronunciation, расширенный placement test и социальные функции. Эти функции пока не реализованы.
+
+### Conversations in Telegram
+
+`/start` and `/settings` configure the learner profile with inline buttons. After setup the coach asks the first question. `/topic` starts a fresh conversation; `/pause` and `/resume` control daily topics. Users choose a timezone and 09:00, 13:00 or 19:00, or disable daily topics. Existing web users can run `/start` to configure this in the bot.
+
+The bot process runs the daily scheduler alongside polling; it must stay online. Topics are sent during the selected local hour only, after at least an hour without user interaction. They use interests, level and recent conversation history. No extra cron service is needed. MongoDB stores drafts, scheduling state and separate conversation starters; these starters do not affect learning statistics. Daily delivery prioritizes avoiding duplicate nudges: an ambiguous send timeout skips that date instead of retrying blindly.
+
+After deployment, `npm run telegram:setup` refreshes the Telegram command menu and `npm run db:indexes` creates the added history/scheduler indexes.

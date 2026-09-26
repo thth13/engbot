@@ -34,3 +34,12 @@ Authentication: server-verified Telegram Mini App initData; every data read and 
 ## States and constraints
 
 Empty views explain the next action. No fake success on API failure. Inline errors survive until retry; pending operations disable duplicate local submit. All API errors preserve the form content. UI is Russian, dates ru-RU; English learning content is intentional. No sensitive data in URLs except opaque source document IDs. AI text is rendered as text, never HTML. Keyboard/touch behavior and narrow layouts need runtime verification by the user.
+
+## Telegram flows
+
+- `/start` collects native language, level, goal, minutes, interests, timezone and daily conversation time inside Telegram. Existing web profiles remain intact until the last step commits. `/settings` repeats this flow; Back preserves answers.
+- Canonical bot form owner: `apps/bot/src/onboarding.ts`; shared validation: `settingsSchema`. Each step uses a revision to reject stale callbacks. Draft changes and cached replies commit in one MongoDB transaction; retries reuse the cached reply.
+- Finishing onboarding starts an English conversation immediately. `/topic` requests a fresh topic. Bot questions are stored separately from learner messages, included in AI history and never award XP.
+- Daily starters are optional, at the selected local hour, at most one attempted delivery per local date. No catch-up messages outside that hour; no daily message within one hour of user interaction or while onboarding. `/pause` disables and `/resume` enables daily messages.
+- Ordinary replies have no website CTA. Only explicit `/app`, `/practice`, `/mistakes`, `/words`, `/progress` commands show a relevant app link.
+- Scheduled delivery reserves the date before sending to avoid duplicate nudges on ambiguous network failures. Such failures may skip that day's message. Blocking the bot disables scheduled messages. Runtime Telegram checks are deferred to the user.

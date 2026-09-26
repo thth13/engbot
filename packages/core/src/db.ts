@@ -36,10 +36,19 @@ export async function database() {
     exercises: db.collection<Exercise>("exercises"),
     activity: db.collection<Activity>("activity"),
     limits: db.collection<{ _id: string; count: number }>("limits"),
+    starters: db.collection<{
+      _id: string;
+      userId: string;
+      text: string;
+      createdAt: Date;
+      sentAt?: Date;
+    }>("conversationStarters"),
     updates: db.collection<{
       _id: string;
       status: string;
       reply?: string;
+      startConversation?: boolean;
+      payload?: import("./schema").BotReply;
       leaseUntil?: Date;
     }>("telegramUpdates"),
   };
