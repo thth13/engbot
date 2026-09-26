@@ -32,22 +32,22 @@ import type { AppData, Settings } from "@engbot/core/schema";
 import { settingsSchema } from "@engbot/core/schema";
 import { loadTelegramWebApp } from "@/lib/telegram-web-app";
 import { Button, Empty, Meter } from "./ui";
-import { LanguageSelect } from "./language-select";
+import { LanguageSelect, languageLabel } from "./language-select";
 const navigation = [
-  { path: "/", key: "home", label: "Главная", icon: House },
+  { path: "/", key: "home", label: "Головна", icon: House },
   { path: "/practice", key: "practice", label: "Практика", icon: Zap },
-  { path: "/chat", key: "chat", label: "Разговор", icon: MessageCircle },
+  { path: "/chat", key: "chat", label: "Розмова", icon: MessageCircle },
   {
     path: "/mistakes",
     key: "mistakes",
-    label: "Мои ошибки",
+    label: "Мої помилки",
     icon: GraduationCap,
   },
-  { path: "/vocabulary", key: "vocabulary", label: "Словарь", icon: BookOpen },
+  { path: "/vocabulary", key: "vocabulary", label: "Словник", icon: BookOpen },
   {
     path: "/progress",
     key: "progress",
-    label: "Прогресс",
+    label: "Прогрес",
     icon: ChartNoAxesCombined,
   },
 ];
@@ -75,19 +75,25 @@ async function api<T>(
   if (!response.ok)
     throw new ApiError(
       response.status,
-      data.error || "Не удалось выполнить запрос.",
+      data.error || "Не вдалося виконати запит.",
     );
   return data as T;
 }
 const errorText = (error: unknown) =>
   error instanceof Error
     ? error.name === "TimeoutError"
-      ? "Ответ занимает слишком много времени. Повторите попытку."
+      ? "Відповідь забирає надто багато часу. Спробуйте ще раз."
       : error.message
-    : "Не удалось выполнить запрос.";
-const number = (n: number) => new Intl.NumberFormat("ru-RU").format(n);
+    : "Не вдалося виконати запит.";
+const number = (n: number) => new Intl.NumberFormat("uk-UA").format(n);
+const pluralRules = new Intl.PluralRules("uk-UA");
+function plural(n: number, one: string, few: string, many: string) {
+  const form = pluralRules.select(n);
+  return form === "one" ? one : form === "few" ? few : many;
+}
+
 function date(value: string) {
-  return new Intl.DateTimeFormat("ru-RU", {
+  return new Intl.DateTimeFormat("uk-UA", {
     day: "numeric",
     month: "short",
   }).format(new Date(value));
@@ -121,7 +127,7 @@ export function CoachApp({ page }: { page: string }) {
       } catch (error) {
         if (!(error instanceof ApiError) || error.status !== 401) throw error;
         if (!tg?.initData)
-          throw new ApiError(401, "Откройте приложение через Telegram.");
+          throw new ApiError(401, "Відкрийте застосунок через Telegram.");
         await api(
           "auth/telegram",
           { initData: tg.initData },
@@ -160,7 +166,7 @@ export function CoachApp({ page }: { page: string }) {
     return (
       <main className="gate">
         <LoaderCircle className="spin" />
-        <p role="status">Открываем ваш учебный кабинет…</p>
+        <p role="status">Відкриваємо ваш навчальний кабінет…</p>
       </main>
     );
   if (!data)
@@ -170,14 +176,14 @@ export function CoachApp({ page }: { page: string }) {
           <span className="brand-mark">e.</span> English Coach
         </div>
         <div className="gate-content">
-          <span className="eyebrow">ВАШ АНГЛИЙСКИЙ. ВАШ ПУТЬ.</span>
+          <span className="eyebrow">ВАША АНГЛІЙСЬКА. ВАШ ШЛЯХ.</span>
           <h1>
-            Ошибаться —<br />
-            <em>значит учиться.</em>
+            Помилятися —<br />
+            <em>означає вчитися.</em>
           </h1>
           <p>
-            Разговаривайте по-английски. Получайте понятные исправления и
-            практику, которая помогает именно вам.
+            Спілкуйтеся англійською. Отримуйте зрозумілі виправлення й практику,
+            яка допомагає саме вам.
           </p>
           <div className="sentence-demo">
             <span>I go yesterday to shop</span>
@@ -186,14 +192,16 @@ export function CoachApp({ page }: { page: string }) {
           </div>
           {bot ? (
             <a className="button" href={`https://t.me/${bot}?start=web`}>
-              Открыть в Telegram <Send size={17} />
+              Відкрити в Telegram <Send size={17} />
             </a>
           ) : (
             <p className="muted">
-              Вход станет доступен после подключения Telegram-бота.
+              Вхід стане доступним після підключення Telegram-бота.
             </p>
           )}
-          <p className="helper">Откройте Mini App через кнопку в боте.</p>
+          <p className="helper">
+            Відкрийте Mini App за допомогою кнопки в боті.
+          </p>
           {error && (
             <p className="error" role="alert">
               {error}
@@ -208,24 +216,24 @@ export function CoachApp({ page }: { page: string }) {
                 void login();
               }}
             >
-              Повторить вход
+              Повторити вхід
             </Button>
           )}
         </div>
         <p className="gate-footer">
-          Разговор → ваши ошибки → персональная практика
+          Розмова → ваші помилки → персональна практика
         </p>
       </main>
     );
-  const title = navigation.find((n) => n.key === page)?.label || "Профиль";
+  const title = navigation.find((n) => n.key === page)?.label || "Профіль";
   return (
     <div className="app-shell">
       <aside className="sidebar">
         <Link className="brand" href="/">
           <span className="brand-mark">e.</span> English Coach
         </Link>
-        <div className="sidebar-caption">ЛИЧНЫЙ КАБИНЕТ</div>
-        <nav aria-label="Главная навигация">
+        <div className="sidebar-caption">ОСОБИСТИЙ КАБІНЕТ</div>
+        <nav aria-label="Головна навігація">
           {navigation.map((n) => (
             <Link
               key={n.key}
@@ -243,8 +251,8 @@ export function CoachApp({ page }: { page: string }) {
         </nav>
         <div className="sidebar-note">
           <Sparkles size={21} />
-          <strong>Не идеально. Но лучше.</strong>
-          <p>Каждая ошибка — подсказка, чему учиться дальше.</p>
+          <strong>Не ідеально. Але краще.</strong>
+          <p>Кожна помилка — підказка, чого вчитися далі.</p>
         </div>
         <Link href="/profile" className="profile-link">
           <span className="avatar">{data.user.name.slice(0, 1)}</span>
@@ -252,8 +260,8 @@ export function CoachApp({ page }: { page: string }) {
             <strong>{data.user.name}</strong>
             <small>
               {data.user.settings?.englishLevel === "unknown"
-                ? "Уровень не определён"
-                : data.user.settings?.englishLevel || "Настроить профиль"}
+                ? "Рівень не визначено"
+                : data.user.settings?.englishLevel || "Налаштувати профіль"}
             </small>
           </span>
           <Settings2 size={17} />
@@ -274,7 +282,7 @@ export function CoachApp({ page }: { page: string }) {
             <Link
               className="mobile-profile avatar"
               href="/profile"
-              aria-label="Профиль"
+              aria-label="Профіль"
             >
               {data.user.name.slice(0, 1)}
             </Link>
@@ -298,10 +306,10 @@ export function CoachApp({ page }: { page: string }) {
           )}
         </main>
         <footer className="app-footer">
-          Маленькая практика. Заметные перемены.<span>English Coach</span>
+          Трохи практики. Помітні зміни.<span>English Coach</span>
         </footer>
       </div>
-      <nav className="bottom-nav" aria-label="Мобильная навигация">
+      <nav className="bottom-nav" aria-label="Мобільна навігація">
         {navigation.slice(0, 5).map((n) => (
           <Link
             key={n.key}
@@ -361,33 +369,32 @@ function Dashboard({ data }: { data: AppData }) {
   return (
     <>
       <Heading
-        eyebrow="КАЖДЫЙ РАЗ НЕМНОГО УВЕРЕННЕЕ"
-        title={`${data.user.name}, продолжим?`}
+        eyebrow="ЩОРАЗУ ТРОХИ ВПЕВНЕНІШЕ"
+        title={`${data.user.name}, продовжимо?`}
       >
-        Ваши разговоры становятся планом обучения. Один маленький шаг на
-        сегодня.
+        Ваші розмови стають планом навчання. Один маленький крок на сьогодні.
       </Heading>
       <div className="dashboard-grid">
         <section className="hero-card">
           <div className="hero-copy">
             <span className="pill">
-              <Sparkles size={14} /> ВАША ПРАКТИКА НА СЕГОДНЯ
+              <Sparkles size={14} /> ВАША ПРАКТИКА НА СЬОГОДНІ
             </span>
             <h2>
               {data.counts.due
-                ? "Превратите «почти»\nв «получилось»."
-                : "Начните с пары\nпростых фраз."}
+                ? "Перетворіть «майже»\nна «вийшло»."
+                : "Почніть із кількох\nпростих фраз."}
             </h2>
             <p>
               {data.counts.due
-                ? `${data.counts.due} заданий к повторению. Вернитесь к своим ошибкам, пока они не стали привычкой.`
-                : "Расскажите, как прошёл ваш день. Тренер заметит, что уже получается и что стоит повторить."}
+                ? `${number(data.counts.due)} ${plural(data.counts.due, "завдання", "завдання", "завдань")} для повторення. Поверніться до своїх помилок, поки вони не стали звичкою.`
+                : "Розкажіть, як минув ваш день. Тренер помітить, що вже вдається і що варто повторити."}
             </p>
             <Link
               className="button light"
               href={data.counts.due ? "/practice" : "/chat"}
             >
-              {data.counts.due ? "Начать практику" : "Начать разговор"}
+              {data.counts.due ? "Почати практику" : "Почати розмову"}
               <ArrowRight size={18} />
             </Link>
           </div>
@@ -406,7 +413,7 @@ function Dashboard({ data }: { data: AppData }) {
                 <Check size={20} />
               </span>
             </div>
-            <span className="visual-caption">Ошибки — это начало.</span>
+            <span className="visual-caption">Помилки — це початок.</span>
           </div>
         </section>
         <section className="daily-card">
@@ -416,7 +423,9 @@ function Dashboard({ data }: { data: AppData }) {
           </div>
           <div className="streak-number">
             {data.user.streak}
-            <span>дней подряд</span>
+            <span>
+              {plural(data.user.streak, "день", "дні", "днів")} поспіль
+            </span>
           </div>
           <div className="week-dots">
             {Array.from({ length: 7 }, (_, i) => {
@@ -427,7 +436,7 @@ function Dashboard({ data }: { data: AppData }) {
               return (
                 <div key={key}>
                   <span>
-                    {new Intl.DateTimeFormat("ru-RU", {
+                    {new Intl.DateTimeFormat("uk-UA", {
                       weekday: "narrow",
                       timeZone: "UTC",
                     }).format(d)}
@@ -441,48 +450,48 @@ function Dashboard({ data }: { data: AppData }) {
           </div>
           <p>
             {today
-              ? "Вы уже сделали шаг сегодня. Так держать!"
-              : `Ваша цель — ${data.user.settings?.dailyGoal} минут в день. Начните с одного разговора.`}
+              ? "Ви вже зробили крок сьогодні. Так тримати!"
+              : `Ваша мета — ${data.user.settings?.dailyGoal} хвилин на день. Почніть з однієї розмови.`}
           </p>
         </section>
       </div>
       <div className="stats-grid">
         <Stat
           icon={<GraduationCap />}
-          label="Ваш уровень"
+          label="Ваш рівень"
           value={
             data.user.settings?.englishLevel === "unknown"
               ? "—"
               : data.user.settings?.englishLevel || "—"
           }
-          note="Указан в профиле"
+          note="Зазначено в профілі"
         />
         <Stat
           icon={<BookOpen />}
-          label="Личный словарь"
+          label="Особистий словник"
           value={number(data.counts.words)}
-          note="Слова из ваших разговоров"
+          note="Слова з ваших розмов"
         />
         <Stat
           icon={<Target />}
-          label="Без ошибок"
+          label="Без помилок"
           value={messages ? `${Math.round((accurate / messages) * 100)}%` : "—"}
-          note="Сообщения · последние 30 активных дней"
+          note="Повідомлення · останні 30 активних днів"
         />
         <Stat
           icon={<Zap />}
-          label="Опыт обучения"
+          label="Досвід навчання"
           value={number(data.user.xp)}
-          note={`Уровень практики ${Math.floor(data.user.xp / 500) + 1} · XP`}
+          note={`Рівень практики ${Math.floor(data.user.xp / 500) + 1} · XP`}
         />
       </div>
       <Link className="text-link progress-link" href="/progress">
-        Посмотреть весь прогресс <ArrowRight size={16} />
+        Переглянути весь прогрес <ArrowRight size={16} />
       </Link>
       <div className="two-columns">
         <section className="panel">
           <div className="section-heading">
-            <h2>На чём сосредоточиться</h2>
+            <h2>На чому зосередитися</h2>
             <span className="tag">ВАШ ФОКУС</span>
           </div>
           {weak.length ? (
@@ -490,7 +499,11 @@ function Dashboard({ data }: { data: AppData }) {
               <Link className="skill-row" href="/practice" key={s.name}>
                 <div>
                   <strong>{s.name}</strong>
-                  <small>{s.occurrences} ошибок в разговорах</small>
+                  <small>
+                    {number(s.occurrences)}{" "}
+                    {plural(s.occurrences, "помилка", "помилки", "помилок")} у
+                    розмовах
+                  </small>
                 </div>
                 <div>
                   <span>{s.mastery}%</span>
@@ -500,19 +513,19 @@ function Dashboard({ data }: { data: AppData }) {
               </Link>
             ))
           ) : (
-            <Empty title="Узнаем ваши сильные стороны">
-              После первого разговора здесь появятся темы для практики.
+            <Empty title="Дізнаймося про ваші сильні сторони">
+              Після першої розмови тут з’являться теми для практики.
             </Empty>
           )}
           <p className="helper">
-            Освоение оценивается по результатам повторений.
+            Опанування оцінюється за результатами повторень.
           </p>
         </section>
         <section className="panel">
           <div className="section-heading">
-            <h2>Из ваших разговоров</h2>
+            <h2>Із ваших розмов</h2>
             <Link href="/mistakes">
-              Все ошибки <ArrowRight size={15} />
+              Усі помилки <ArrowRight size={15} />
             </Link>
           </div>
           {data.mistakes.length ? (
@@ -524,16 +537,19 @@ function Dashboard({ data }: { data: AppData }) {
                   <ArrowRight size={16} />
                   <strong>{m.correct}</strong>
                 </p>
-                <small>Встречалось {m.occurrences} раз</small>
+                <small>
+                  Траплялося {number(m.occurrences)}{" "}
+                  {plural(m.occurrences, "раз", "рази", "разів")}
+                </small>
               </div>
             ))
           ) : (
             <Empty
-              title="Здесь начинается ваш прогресс"
+              title="Тут починається ваш прогрес"
               href="/chat"
-              label="Поговорить с тренером"
+              label="Поговорити з тренером"
             >
-              Напишите пару предложений — сохраним то, что стоит повторить.
+              Напишіть кілька речень — збережемо те, що варто повторити.
             </Empty>
           )}
         </section>
@@ -566,21 +582,21 @@ function Stat({
 const profileLevels = ["A1", "A2", "B1", "B2", "C1", "unknown"] as const;
 const profileMinutes = [5, 10, 15, 20, 30, 60];
 const profileGoals = [
-  ["Speak confidently", "Говорить увереннее"],
-  ["Travel", "Путешествовать"],
-  ["Work", "Для работы"],
-  ["Job interviews", "Проходить собеседования"],
-  ["Move abroad", "Переехать за границу"],
-  ["Understand content", "Понимать фильмы и видео"],
-  ["Improve grammar", "Улучшить грамматику"],
-  ["Expand vocabulary", "Расширить словарь"],
+  ["Speak confidently", "Говорити впевненіше"],
+  ["Travel", "Подорожувати"],
+  ["Work", "Для роботи"],
+  ["Job interviews", "Проходити співбесіди"],
+  ["Move abroad", "Переїхати за кордон"],
+  ["Understand content", "Розуміти фільми й відео"],
+  ["Improve grammar", "Покращити граматику"],
+  ["Expand vocabulary", "Розширити словник"],
 ] as const;
 const onboardingQuestions = [
-  "Какой язык для вас родной?",
-  "Какой у вас уровень английского?",
-  "Сколько минут в день готовы заниматься?",
-  "Зачем вам английский?",
-  "Что вам интересно?",
+  "Яка мова для вас рідна?",
+  "Який у вас рівень англійської?",
+  "Скільки хвилин на день готові займатися?",
+  "Навіщо вам англійська?",
+  "Що вам цікаво?",
 ];
 function OnboardingChoices<T extends string | number>({
   options,
@@ -633,19 +649,26 @@ function Profile({
       const raw = sessionStorage.getItem(draftKey);
       if (raw) {
         const restored = settingsSchema.safeParse(JSON.parse(raw));
-        if (restored.success) return restored.data;
+        if (restored.success)
+          return {
+            ...restored.data,
+            nativeLanguage: languageLabel(restored.data.nativeLanguage),
+          };
       }
     } catch {}
-    return (
-      data.user.settings || {
-        nativeLanguage: "Русский",
-        englishLevel: "A2",
-        goal: "Speak confidently",
-        interests: "",
-        dailyGoal: 10,
-        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-      }
-    );
+    return data.user.settings
+      ? {
+          ...data.user.settings,
+          nativeLanguage: languageLabel(data.user.settings.nativeLanguage),
+        }
+      : {
+          nativeLanguage: "Українська",
+          englishLevel: "A2",
+          goal: "Speak confidently",
+          interests: "",
+          dailyGoal: 10,
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        };
   });
   const [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
@@ -678,7 +701,7 @@ function Profile({
         !settingsSchema.shape.nativeLanguage.safeParse(form.nativeLanguage)
           .success
       ) {
-        setError("Выберите родной язык из списка.");
+        setError("Виберіть рідну мову зі списку.");
         ref.current?.querySelector<HTMLInputElement>("input")?.focus();
         return;
       }
@@ -687,7 +710,7 @@ function Profile({
     }
     const valid = settingsSchema.safeParse(form);
     if (!valid.success) {
-      setError("Укажите родной язык и проверьте остальные поля.");
+      setError("Укажіть рідну мову й перевірте решту полів.");
       ref.current?.querySelector<HTMLInputElement>("input")?.focus();
       return;
     }
@@ -705,14 +728,14 @@ function Profile({
   return (
     <>
       <Heading
-        eyebrow={
-          data.user.settings ? "ВАШИ ПРЕДПОЧТЕНИЯ" : "ДАВАЙТЕ ПОЗНАКОМИМСЯ"
-        }
+        eyebrow={data.user.settings ? "ВАШІ ВПОДОБАННЯ" : "НУМО ЗНАЙОМИТИСЯ"}
         title={
-          data.user.settings ? "Настроим обучение под вас" : "С чего начнём?"
+          data.user.settings
+            ? "Налаштуймо навчання під вас"
+            : "Із чого почнемо?"
         }
       >
-        Несколько деталей помогут тренеру подобрать объяснения и задания.
+        Кілька деталей допоможуть тренеру підібрати пояснення й завдання.
       </Heading>
       <form
         ref={ref}
@@ -724,11 +747,11 @@ function Profile({
           <>
             <div className="onboarding-progress">
               <span>
-                Шаг {step + 1} из {onboardingQuestions.length}
+                Крок {step + 1} із {onboardingQuestions.length}
               </span>
               <Meter
                 value={((step + 1) / onboardingQuestions.length) * 100}
-                label={`Шаг ${step + 1} из ${onboardingQuestions.length}`}
+                label={`Крок ${step + 1} із ${onboardingQuestions.length}`}
               />
             </div>
             <div className="onboarding-step" key={step}>
@@ -751,7 +774,7 @@ function Profile({
                 <OnboardingChoices
                   options={profileLevels.map((value) => ({
                     value,
-                    label: value === "unknown" ? "Пока не знаю" : value,
+                    label: value === "unknown" ? "Поки що не знаю" : value,
                   }))}
                   value={form.englishLevel}
                   onChange={(englishLevel) =>
@@ -764,13 +787,13 @@ function Profile({
                   <OnboardingChoices
                     options={profileMinutes.map((value) => ({
                       value,
-                      label: `${value} минут`,
+                      label: `${value} хвилин`,
                     }))}
                     value={form.dailyGoal}
                     onChange={(dailyGoal) => setForm({ ...form, dailyGoal })}
                   />
                   <p className="helper">
-                    Это ваш ориентир. Таймер занятий пока не ведётся.
+                    Це ваш орієнтир. Час занять поки що не відстежується.
                   </p>
                 </>
               )}
@@ -789,7 +812,7 @@ function Profile({
                   <input
                     aria-labelledby="onboarding-question"
                     aria-describedby="onboarding-interests-help"
-                    placeholder="Например: технологии, музыка, путешествия"
+                    placeholder="Наприклад: технології, музика, подорожі"
                     value={form.interests}
                     maxLength={300}
                     onChange={(e) =>
@@ -797,12 +820,12 @@ function Profile({
                     }
                   />
                   <p id="onboarding-interests-help" className="helper">
-                    Необязательно. Подберём темы для разговоров по вашим
-                    интересам.
+                    Необов’язково. Підберемо теми для розмов за вашими
+                    інтересами.
                   </p>
                   <p className="helper">
-                    Часовой пояс: {form.timezone}. Используем для подсчёта дней
-                    практики.
+                    Часовий пояс: {form.timezone}. Використовуємо для підрахунку
+                    днів практики.
                   </p>
                 </>
               )}
@@ -811,7 +834,7 @@ function Profile({
         ) : (
           <>
             <label>
-              Родной язык
+              Рідна мова
               <input
                 value={form.nativeLanguage}
                 maxLength={40}
@@ -824,7 +847,7 @@ function Profile({
             </label>
             <div className="form-grid">
               <label>
-                Уровень английского
+                Рівень англійської
                 <select
                   value={form.englishLevel}
                   onChange={(e) =>
@@ -836,13 +859,13 @@ function Profile({
                 >
                   {profileLevels.map((v) => (
                     <option key={v} value={v}>
-                      {v === "unknown" ? "Пока не знаю" : v}
+                      {v === "unknown" ? "Поки що не знаю" : v}
                     </option>
                   ))}
                 </select>
               </label>
               <label>
-                Ежедневная цель
+                Щоденна мета
                 <select
                   value={form.dailyGoal}
                   onChange={(e) =>
@@ -851,14 +874,14 @@ function Profile({
                 >
                   {profileMinutes.map((v) => (
                     <option key={v} value={v}>
-                      {v} минут
+                      {v} хвилин
                     </option>
                   ))}
                 </select>
               </label>
             </div>
             <label>
-              Зачем вам английский
+              Навіщо вам англійська
               <select
                 value={form.goal}
                 onChange={(e) =>
@@ -873,9 +896,9 @@ function Profile({
               </select>
             </label>
             <label>
-              Что вам интересно?
+              Що вам цікаво?
               <input
-                placeholder="Например: технологии, музыка, путешествия"
+                placeholder="Наприклад: технології, музика, подорожі"
                 value={form.interests}
                 maxLength={300}
                 onChange={(e) =>
@@ -884,8 +907,9 @@ function Profile({
               />
             </label>
             <p className="helper">
-              Часовой пояс: {form.timezone}. Используем для подсчёта дней
-              практики. Цель в минутах — ваш ориентир, таймер пока не ведётся.
+              Часовий пояс: {form.timezone}. Використовуємо для підрахунку днів
+              практики. Мета у хвилинах — ваш орієнтир, час поки що не
+              відстежується.
             </p>
           </>
         )}
@@ -893,9 +917,9 @@ function Profile({
           {error ? (
             <span className="error">{error}</span>
           ) : saved ? (
-            "Профиль сохранён. Можно переходить к разговору."
+            "Профіль збережено. Можна переходити до розмови."
           ) : dirty && data.user.settings ? (
-            "Есть несохранённые изменения."
+            "Є незбережені зміни."
           ) : (
             ""
           )}
@@ -918,15 +942,15 @@ function Profile({
           <Button busy={busy} type="submit">
             {onboarding
               ? step === onboardingQuestions.length - 1
-                ? "Начать обучение"
-                : "Далее"
-              : "Сохранить профиль"}
+                ? "Почати навчання"
+                : "Далі"
+              : "Зберегти профіль"}
             <ArrowRight size={17} />
           </Button>
         </div>
         {saved && (
           <Link className="text-link" href="/chat">
-            Перейти к разговору →
+            Перейти до розмови →
           </Link>
         )}
       </form>
@@ -954,7 +978,7 @@ function Chat({
     e.preventDefault();
     if (busy) return;
     if (!text.trim()) {
-      setError("Напишите хотя бы одно предложение.");
+      setError("Напишіть хоча б одне речення.");
       input.current?.focus();
       return;
     }
@@ -988,8 +1012,8 @@ function Chat({
   }
   return (
     <>
-      <Heading eyebrow="РАЗГОВОР С ТРЕНЕРОМ" title="Just start talking.">
-        Как прошёл ваш день? Пишите как получается — разберёмся вместе.
+      <Heading eyebrow="РОЗМОВА З ТРЕНЕРОМ" title="Просто почніть говорити.">
+        Як минув ваш день? Пишіть як виходить — розберемося разом.
       </Heading>
       <section className="chat-panel panel">
         <div className="coach-label">
@@ -998,29 +1022,29 @@ function Chat({
           </span>
           <div>
             <strong>English Coach</strong>
-            <small>Короткие объяснения. Живой разговор.</small>
+            <small>Короткі пояснення. Жива розмова.</small>
           </div>
         </div>
         <div className="messages">
           {!data.messages.length && (
             <div className="assistant-message">
-              <span className="message-label">COACH</span>
+              <span className="message-label">ТРЕНЕР</span>
               <p>Hi! Tell me a little about your day. What did you do today?</p>
-              <span className="helper">Можно начать с «Today I…»</span>
+              <span className="helper">Можна почати з «Today I…»</span>
             </div>
           )}
           {data.messages.map((m) => (
             <div className="message-pair" key={m._id}>
               <div className="user-message">
-                <span className="message-label">ВЫ</span>
+                <span className="message-label">ВИ</span>
                 <p>{m.text}</p>
               </div>
               <div className="assistant-message">
-                <span className="message-label">COACH</span>
+                <span className="message-label">ТРЕНЕР</span>
                 <p>{m.analysis.reply}</p>
                 {m.analysis.mistakes.length > 0 && (
                   <div className="corrections">
-                    <span className="tag">СДЕЛАЕМ ЧУТЬ ЛУЧШЕ</span>
+                    <span className="tag">ЗРОБІМО ТРОХИ КРАЩЕ</span>
                     {m.analysis.mistakes.slice(0, 3).map((c, i) => (
                       <div key={i}>
                         <p>
@@ -1064,14 +1088,14 @@ function Chat({
           ))}
           {busy && (
             <p className="muted" role="status">
-              Тренер обдумывает ответ…
+              Тренер обмірковує відповідь…
             </p>
           )}
           <div ref={bottom} />
         </div>
         <form className="composer" noValidate onSubmit={send}>
           <label className="sr-only" htmlFor="message">
-            Сообщение на английском
+            Повідомлення англійською
           </label>
           <textarea
             ref={input}
@@ -1086,28 +1110,39 @@ function Chat({
           />
           <Button type="submit" busy={busy}>
             <Send size={17} />
-            <span>Отправить</span>
+            <span>Надіслати</span>
           </Button>
         </form>
         <div id="chat-status" className="form-status" role="status">
           {error ? (
             <span className="error">{error}</span>
           ) : (
-            "10 XP за сообщение · AI может ошибаться"
+            "10 XP за повідомлення · ШІ може помилятися"
           )}
         </div>
       </section>
     </>
   );
 }
+const legacyFilters: Record<string, string> = {
+  Все: "Усі",
+  Грамматика: "Граматика",
+  Словарь: "Словник",
+  Артикли: "Артиклі",
+  Времена: "Часи",
+  Предлоги: "Прийменники",
+  "Порядок слов": "Порядок слів",
+  "Повторить сегодня": "Повторити сьогодні",
+  Освоено: "Опановано",
+};
 function useFilter() {
   const [filter, setFilter] = useState(() =>
     typeof window === "undefined"
-      ? "Все"
-      : new URLSearchParams(window.location.search).get("filter") || "Все",
+      ? "Усі"
+      : new URLSearchParams(window.location.search).get("filter") || "Усі",
   );
   return [
-    filter,
+    legacyFilters[filter] || filter,
     (value: string) => {
       setFilter(value);
       const url = new URL(window.location.href);
@@ -1126,7 +1161,7 @@ function Filters({
   onChange: (v: string) => void;
 }) {
   return (
-    <div className="filters" aria-label="Фильтры">
+    <div className="filters" aria-label="Фільтри">
       {values.map((v) => (
         <button
           key={v}
@@ -1144,27 +1179,27 @@ function Mistakes({ data }: { data: AppData }) {
   const [filter, setFilter] = useFilter();
   const [page, setPage] = useState(0);
   const types: Record<string, string> = {
-    Грамматика: "Grammar",
-    Словарь: "Vocabulary",
-    Артикли: "Articles",
-    Времена: "Tenses",
-    Предлоги: "Prepositions",
-    "Порядок слов": "Word order",
+    Граматика: "Grammar",
+    Словник: "Vocabulary",
+    Артиклі: "Articles",
+    Часи: "Tenses",
+    Прийменники: "Prepositions",
+    "Порядок слів": "Word order",
   };
   const items = data.mistakes.filter(
-    (m) => filter === "Все" || m.type === types[filter],
+    (m) => filter === "Усі" || m.type === types[filter],
   );
   return (
     <>
       <Heading
-        eyebrow="ВАШ ПЕРСОНАЛЬНЫЙ БАНК ОШИБОК"
-        title="Здесь ошибки работают на вас."
+        eyebrow="ВАШ ПЕРСОНАЛЬНИЙ БАНК ПОМИЛОК"
+        title="Тут помилки працюють на вас."
       >
-        Повторяйте то, что встречается в ваших разговорах, и замечайте перемены.
+        Повторюйте те, що трапляється у ваших розмовах, і помічайте зміни.
       </Heading>
       <div className="toolbar">
         <Filters
-          values={["Все", ...Object.keys(types)]}
+          values={["Усі", ...Object.keys(types)]}
           active={filter}
           onChange={(v) => {
             setFilter(v);
@@ -1173,7 +1208,7 @@ function Mistakes({ data }: { data: AppData }) {
         />
         {data.mistakes.length > 0 && (
           <Link className="button" href="/practice">
-            Практиковать <ArrowRight size={16} />
+            Практикувати <ArrowRight size={16} />
           </Link>
         )}
       </div>
@@ -1182,14 +1217,13 @@ function Mistakes({ data }: { data: AppData }) {
           <Empty
             title={
               data.mistakes.length
-                ? "В этой категории ошибок нет"
-                : "Пока здесь чистый лист"
+                ? "У цій категорії немає помилок"
+                : "Поки що тут чистий аркуш"
             }
             href="/chat"
-            label="Начать разговор"
+            label="Почати розмову"
           >
-            Поговорите с тренером — значимые ошибки автоматически появятся
-            здесь.
+            Поговоріть із тренером — суттєві помилки автоматично з’являться тут.
           </Empty>
         </section>
       ) : (
@@ -1199,7 +1233,10 @@ function Mistakes({ data }: { data: AppData }) {
               <article className="panel mistake-card" key={m._id}>
                 <div className="section-heading">
                   <span className="tag">{m.category}</span>
-                  <small>Встречалось {m.occurrences} раз</small>
+                  <small>
+                    Траплялося {number(m.occurrences)}{" "}
+                    {plural(m.occurrences, "раз", "рази", "разів")}
+                  </small>
                 </div>
                 <div className="correction-pair">
                   <div>
@@ -1217,14 +1254,17 @@ function Mistakes({ data }: { data: AppData }) {
                 <p className="explanation">{m.explanation}</p>
                 <div className="mistake-bottom">
                   <div>
-                    <small>Освоение · {m.mastery}%</small>
-                    <Meter value={m.mastery} label={`Освоение ${m.category}`} />
+                    <small>Опанування · {m.mastery}%</small>
+                    <Meter
+                      value={m.mastery}
+                      label={`Опанування ${m.category}`}
+                    />
                   </div>
                   <Link
                     className="text-link"
                     href={`/practice?source=mistake&id=${m._id}`}
                   >
-                    Повторить <ArrowRight size={16} />
+                    Повторити <ArrowRight size={16} />
                   </Link>
                 </div>
               </article>
@@ -1234,8 +1274,8 @@ function Mistakes({ data }: { data: AppData }) {
         </>
       )}
       <p className="helper">
-        Показаны до 500 частых ошибок из {data.counts.mistakes}. Практика
-        учитывает весь банк.
+        Показано до 500 частих помилок із {data.counts.mistakes}. Практика
+        враховує весь банк.
       </p>
     </>
   );
@@ -1244,23 +1284,23 @@ function Vocabulary({ data }: { data: AppData }) {
   const [filter, setFilter] = useFilter();
   const [page, setPage] = useState(0);
   const items = data.words.filter((w) =>
-    filter === "Освоено"
+    filter === "Опановано"
       ? w.mastery === 100
-      : filter === "Повторить сегодня"
+      : filter === "Повторити сьогодні"
         ? new Date(w.nextReview) <= new Date()
         : true,
   );
   return (
     <>
       <Heading
-        eyebrow="СЛОВА ИЗ ВАШЕЙ ЖИЗНИ"
-        title="Не случайный список. Ваш словарь."
+        eyebrow="СЛОВА З ВАШОГО ЖИТТЯ"
+        title="Не випадковий список. Ваш словник."
       >
-        Сохраняйте слова из разговора кнопкой «+» и возвращайтесь к ним вовремя.
+        Зберігайте слова з розмови кнопкою «+» і повертайтеся до них вчасно.
       </Heading>
       <div className="toolbar">
         <Filters
-          values={["Все", "Повторить сегодня", "Освоено"]}
+          values={["Усі", "Повторити сьогодні", "Опановано"]}
           active={filter}
           onChange={(v) => {
             setFilter(v);
@@ -1269,18 +1309,18 @@ function Vocabulary({ data }: { data: AppData }) {
         />
         {data.words.length > 0 && (
           <Link className="button" href="/practice?source=word">
-            Повторить слова <ArrowRight size={16} />
+            Повторити слова <ArrowRight size={16} />
           </Link>
         )}
       </div>
       {!items.length ? (
         <section className="panel">
           <Empty
-            title="Пока нет слов в этом разделе"
+            title="У цьому розділі поки що немає слів"
             href="/chat"
-            label="Перейти к разговору"
+            label="Перейти до розмови"
           >
-            Добавьте интересные слова из ответов тренера в свой словарь.
+            Додайте цікаві слова з відповідей тренера до свого словника.
           </Empty>
         </section>
       ) : (
@@ -1295,16 +1335,16 @@ function Vocabulary({ data }: { data: AppData }) {
                 <p className="translation">{w.translation}</p>
                 <p className="muted">{w.definition}</p>
                 <blockquote>{w.example}</blockquote>
-                <Meter value={w.mastery} label={`Освоение ${w.word}`} />
+                <Meter value={w.mastery} label={`Опанування ${w.word}`} />
                 <div className="section-heading">
                   <small>
-                    {w.mastery}% · Повторение {date(w.nextReview)}
+                    {w.mastery}% · Повторення {date(w.nextReview)}
                   </small>
                   <Link
                     className="text-link"
                     href={`/practice?source=word&id=${w._id}`}
                   >
-                    Повторить
+                    Повторити
                   </Link>
                 </div>
               </article>
@@ -1314,8 +1354,8 @@ function Vocabulary({ data }: { data: AppData }) {
         </>
       )}
       <p className="helper">
-        В списке до 500 последних слов из {data.counts.words}. Повторения
-        учитывают весь словарь.
+        У списку до 500 останніх слів із {data.counts.words}. Повторення
+        враховують увесь словник.
       </p>
     </>
   );
@@ -1332,13 +1372,13 @@ function Pagination({
   return (
     <div className="pagination">
       <small>
-        {page * 10 + 1}–{Math.min((page + 1) * 10, count)} из {count}
+        {page * 10 + 1}–{Math.min((page + 1) * 10, count)} із {count}
       </small>
       <Button
         className="secondary small"
         disabled={page === 0}
         onClick={() => setPage(page - 1)}
-        aria-label="Предыдущая страница"
+        aria-label="Попередня сторінка"
       >
         <ChevronLeft size={16} />
       </Button>
@@ -1346,7 +1386,7 @@ function Pagination({
         className="secondary small"
         disabled={(page + 1) * 10 >= count}
         onClick={() => setPage(page + 1)}
-        aria-label="Следующая страница"
+        aria-label="Наступна сторінка"
       >
         <ChevronRight size={16} />
       </Button>
@@ -1404,7 +1444,7 @@ function Practice({
     e.preventDefault();
     if (busy || !task || result) return;
     if (!answer.trim()) {
-      setError("Введите ответ или выберите вариант.");
+      setError("Введіть відповідь або виберіть варіант.");
       input.current?.focus();
       return;
     }
@@ -1422,10 +1462,10 @@ function Practice({
   return (
     <>
       <Heading
-        eyebrow="ПЕРСОНАЛЬНАЯ ПРАКТИКА"
-        title="Ещё одна попытка. Уже лучше."
+        eyebrow="ПЕРСОНАЛЬНА ПРАКТИКА"
+        title="Ще одна спроба. Уже краще."
       >
-        Задания на основе ваших ошибок и слов. Без гонки и лишней теории.
+        Завдання на основі ваших помилок і слів. Без перегонів і зайвої теорії.
       </Heading>
       <section className="panel practice-panel">
         {!task ? (
@@ -1433,13 +1473,13 @@ function Practice({
             <span className="practice-icon">
               <Target size={32} />
             </span>
-            <h2>Закрепим то, что пригодится вам</h2>
+            <h2>Закріпімо те, що стане вам у пригоді</h2>
             <p>
-              Начнём с того, что пора повторить. За правильный ответ — 20 XP, за
-              попытку — 5 XP.
+              Почнімо з того, що час повторити. За правильну відповідь — 20 XP,
+              за спробу — 5 XP.
             </p>
             <Button busy={busy} onClick={() => void start()}>
-              Получить задание <ArrowRight size={17} />
+              Отримати завдання <ArrowRight size={17} />
             </Button>
           </>
         ) : (
@@ -1447,18 +1487,18 @@ function Practice({
             <span className="tag">
               {
                 {
-                  translation: "ПЕРЕВОД",
-                  gap: "ЗАПОЛНИТЕ ПРОПУСК",
-                  fix: "ИСПРАВЬТЕ ОШИБКУ",
-                  choice: "ВЫБЕРИТЕ ВАРИАНТ",
-                  free: "СВОБОДНЫЙ ОТВЕТ",
+                  translation: "ПЕРЕКЛАД",
+                  gap: "ЗАПОВНІТЬ ПРОПУСК",
+                  fix: "ВИПРАВТЕ ПОМИЛКУ",
+                  choice: "ВИБЕРІТЬ ВАРІАНТ",
+                  free: "ВІЛЬНА ВІДПОВІДЬ",
                 }[task.type]
               }
             </span>
             <h2>{task.prompt}</h2>
             {task.options.length ? (
               <fieldset disabled={busy || !!result}>
-                <legend>Ваш ответ</legend>
+                <legend>Ваша відповідь</legend>
                 {task.options.map((option, i) => (
                   <label className="option" key={i}>
                     <input
@@ -1473,7 +1513,7 @@ function Practice({
               </fieldset>
             ) : (
               <label>
-                Ваш ответ
+                Ваша відповідь
                 <textarea
                   ref={input}
                   rows={4}
@@ -1492,20 +1532,18 @@ function Practice({
                 role="status"
               >
                 <strong>
-                  {result.correct
-                    ? "Получилось! +20 XP"
-                    : "Хорошая попытка. +5 XP"}
+                  {result.correct ? "Вийшло! +20 XP" : "Гарна спроба. +5 XP"}
                 </strong>
                 <p>{result.feedback}</p>
-                <small>Пример ответа</small>
+                <small>Приклад відповіді</small>
                 <p>{result.answer}</p>
                 <Button busy={busy} onClick={() => void start()} type="button">
-                  Следующее задание <ArrowRight size={17} />
+                  Наступне завдання <ArrowRight size={17} />
                 </Button>
               </div>
             ) : (
               <Button busy={busy} type="submit">
-                Проверить ответ <Check size={17} />
+                Перевірити відповідь <Check size={17} />
               </Button>
             )}
           </form>
@@ -1514,7 +1552,7 @@ function Practice({
           {error && <span className="error">{error}</span>}
         </div>
         <Link className="text-link" href="/chat">
-          Вернуться к разговору
+          Повернутися до розмови
         </Link>
       </section>
     </>
@@ -1534,41 +1572,41 @@ function Progress({ data }: { data: AppData }) {
   return (
     <>
       <Heading
-        eyebrow="ВАЖНО НЕ ИДЕАЛЬНО. ВАЖНО РЕГУЛЯРНО."
-        title="Ваш английский в движении."
+        eyebrow="ВАЖЛИВО НЕ ІДЕАЛЬНО. ВАЖЛИВО РЕГУЛЯРНО."
+        title="Ваша англійська розвивається."
       >
-        Реальные результаты разговоров и повторений.
+        Реальні результати розмов і повторень.
       </Heading>
       <div className="stats-grid">
         <Stat
           icon={<Flame />}
-          label="Лучшая серия"
+          label="Найкраща серія"
           value={`${data.user.longestStreak}`}
-          note="Дней практики подряд"
+          note="Днів практики поспіль"
         />
         <Stat
           icon={<MessageCircle />}
-          label="Сообщения"
+          label="Повідомлення"
           value={number(data.activity.reduce((n, a) => n + a.messages, 0))}
-          note="За 30 активных дней"
+          note="За 30 активних днів"
         />
         <Stat
           icon={<Check />}
-          label="Упражнения"
+          label="Вправи"
           value={number(total)}
-          note="За 30 активных дней"
+          note="За 30 активних днів"
         />
         <Stat
           icon={<TrendingUp />}
-          label="Верные ответы"
+          label="Правильні відповіді"
           value={total ? `${Math.round((correct / total) * 100)}%` : "—"}
-          note="За 30 активных дней"
+          note="За 30 активних днів"
         />
       </div>
       <section className="panel">
         <div className="section-heading">
-          <h2>Понемногу, каждый день</h2>
-          <span className="tag">14 ДНЕЙ · XP</span>
+          <h2>Потроху, щодня</h2>
+          <span className="tag">14 ДНІВ · XP</span>
         </div>
         <div className="activity-chart">
           {days.map((d) => (
@@ -1590,8 +1628,8 @@ function Progress({ data }: { data: AppData }) {
       </section>
       <section className="panel">
         <div className="section-heading">
-          <h2>Освоение тем</h2>
-          <span className="muted">По вашим повторениям</span>
+          <h2>Опанування тем</h2>
+          <span className="muted">За вашими повтореннями</span>
         </div>
         {list.length ? (
           list.map((s) => (
@@ -1604,16 +1642,16 @@ function Progress({ data }: { data: AppData }) {
             </div>
           ))
         ) : (
-          <Empty title="Сначала немного практики">
-            После разговоров и упражнений здесь появится прогресс по темам.
+          <Empty title="Спочатку трохи практики">
+            Після розмов і вправ тут з’явиться прогрес за темами.
           </Empty>
         )}
         <p className="helper">
-          Это простая оценка закрепления ошибок, а не тест уровня CEFR.
+          Це проста оцінка роботи над помилками, а не тест рівня CEFR.
         </p>
       </section>
       <Link className="text-link" href="/profile">
-        Настройки обучения <ArrowRight size={16} />
+        Налаштування навчання <ArrowRight size={16} />
       </Link>
     </>
   );

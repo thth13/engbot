@@ -29,16 +29,16 @@ async function handle(
         return NextResponse.json(await snapshot(await currentUser()), {
           headers: { "Cache-Control": "no-store" },
         });
-      throw new HttpError(404, "Страница не найдена.");
+      throw new HttpError(404, "Сторінку не знайдено.");
     }
     if (Number(request.headers.get("content-length") || 0) > 20000)
-      throw new HttpError(413, "Сообщение слишком длинное.");
+      throw new HttpError(413, "Повідомлення задовге.");
     const origin = request.headers.get("origin");
     const expected = process.env.APP_URL
       ? new URL(process.env.APP_URL).origin
       : request.nextUrl.origin;
     if (!origin || origin !== expected)
-      throw new HttpError(403, "Недопустимый источник запроса.");
+      throw new HttpError(403, "Неприпустиме джерело запиту.");
     const body = await request.json();
     if (path === "auth/telegram") {
       await telegramLogin(
@@ -95,7 +95,7 @@ async function handle(
         userId: user._id,
       });
       const word = message?.analysis.words[data.index];
-      if (!word) throw new HttpError(404, "Слово не найдено в разговоре.");
+      if (!word) throw new HttpError(404, "Слово не знайдено в розмові.");
       await db.words.updateOne(
         { _id: identity(user._id, word.word) },
         {
@@ -110,12 +110,12 @@ async function handle(
       );
       return NextResponse.json({ ok: true });
     }
-    throw new HttpError(404, "Действие не найдено.");
+    throw new HttpError(404, "Дію не знайдено.");
   } catch (error) {
     if (error instanceof z.ZodError)
       return NextResponse.json(
         {
-          error: "Проверьте заполненные поля.",
+          error: "Перевірте заповнені поля.",
           issues: error.issues.map((i) => ({
             field: i.path.join("."),
             message: i.message,
@@ -125,7 +125,7 @@ async function handle(
       );
     if (error instanceof SyntaxError)
       return NextResponse.json(
-        { error: "Некорректный запрос." },
+        { error: "Некоректний запит." },
         { status: 400 },
       );
     if (error instanceof HttpError)
@@ -138,7 +138,7 @@ async function handle(
       error instanceof Error ? error.name : "UnknownError",
     );
     return NextResponse.json(
-      { error: "Не удалось выполнить запрос. Попробуйте ещё раз." },
+      { error: "Не вдалося виконати запит. Спробуйте ще раз." },
       { status: 500 },
     );
   }

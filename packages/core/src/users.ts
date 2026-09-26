@@ -30,6 +30,6 @@ export async function rateLimit(userId: string) {
   if ((item?.count || 0) > 100)
     throw new HttpError(
       429,
-      "Сегодня достигнут лимит AI-запросов. Вернитесь завтра.",
+      "Сьогодні досягнуто ліміту запитів до ШІ. Повертайтеся завтра.",
     );
 }

@@ -33,7 +33,7 @@ Authentication: server-verified Telegram Mini App initData; every data read and 
 
 ## States and constraints
 
-Empty views explain the next action. No fake success on API failure. Inline errors survive until retry; pending operations disable duplicate local submit. All API errors preserve the form content. UI is Russian, dates ru-RU; English learning content is intentional. No sensitive data in URLs except opaque source document IDs. AI text is rendered as text, never HTML. Keyboard/touch behavior and narrow layouts need runtime verification by the user.
+Empty views explain the next action. No fake success on API failure. Inline errors survive until retry; pending operations disable duplicate local submit. All API errors preserve the form content. UI is Ukrainian, dates and numbers uk-UA; English learning content is intentional. No sensitive data in URLs except opaque source document IDs. AI text is rendered as text, never HTML. Keyboard/touch behavior and narrow layouts need runtime verification by the user.
 
 ## Telegram flows
 

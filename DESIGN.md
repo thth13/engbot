@@ -6,7 +6,7 @@ An expressive pink learning notebook with a calm, adult workspace. The learner s
 
 ## Audience and register
 
-Russian-speaking adult students and professionals; Telegram on mobile and a desktop companion. Product UI is Russian, conversation and learning targets are English. Explanations follow the saved native language. No Japan market scope.
+Ukrainian-speaking adult students and professionals; Telegram on mobile and a desktop companion. Product UI is Ukrainian, conversation and learning targets are English. Explanations default to Ukrainian and follow an explicitly saved native-language preference. No Japan market scope.
 
 ## Visual direction
 
@@ -50,4 +50,4 @@ Static audit artifact: `docs/premium-audit.json`. Runtime, responsive screenshot
 
 ## Telegram conversation interface
 
-Telegram owns the native message and inline-button appearance. Bot onboarding uses short Russian questions, one persisted step at a time, native callback buttons and Back. Interests accept free text as well as topic presets. Settings share the core schema with the web profile. Ordinary chat replies and daily conversation starters have no website button; explicit app/section commands retain navigation. Conversation prompts use English at the learner's level and explanations use the saved native language.
+Telegram owns the native message and inline-button appearance. Bot onboarding uses short Ukrainian questions, one persisted step at a time, native callback buttons and Back. Interests accept free text as well as topic presets. Settings share the core schema with the web profile. Ordinary chat replies and daily conversation starters have no website button; explicit app/section commands retain navigation. Conversation prompts use English at the learner's level and explanations use the saved native language.

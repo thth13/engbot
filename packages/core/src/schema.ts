@@ -21,7 +21,7 @@ export const settingsSchema = z.object({
     } catch {
       return false;
     }
-  }, "Invalid timezone"),
+  }, "Некоректний часовий пояс"),
 });
 export type Settings = z.infer<typeof settingsSchema>;
 export const correctionSchema = z.object({

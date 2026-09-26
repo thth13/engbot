@@ -1,9 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 export const metadata: Metadata = {
-  title: "English Coach — учитесь на своих ошибках",
+  title: "English Coach — вчіться на своїх помилках",
   description:
-    "Персональная практика английского: разговоры, ошибки и повторения.",
+    "Персональна практика англійської: розмови, помилки й повторення.",
 };
 export const viewport: Viewport = {
   width: "device-width",
@@ -17,7 +17,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="ru">
+    <html lang="uk">
       <body>{children}</body>
     </html>
   );

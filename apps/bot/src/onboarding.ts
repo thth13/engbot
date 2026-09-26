@@ -11,61 +11,61 @@ type Choice = readonly [string, string | number | null];
 const steps: { key: string; question: string; choices: readonly Choice[] }[] = [
   {
     key: "nativeLanguage",
-    question: "На каком языке объяснять ошибки? Можно написать свой язык.",
+    question: "Якою мовою пояснювати помилки? Можна написати свою мову.",
     choices: [
-      ["Русский", "Russian"],
       ["Українська", "Ukrainian"],
-      ["English", "English"],
+      ["Російська", "Russian"],
+      ["Англійська", "English"],
     ],
   },
   {
     key: "englishLevel",
-    question: "Какой у тебя уровень английского?",
+    question: "Який у тебе рівень англійської?",
     choices: [
-      ["A1 · Начинаю", "A1"],
-      ["A2 · Знаю основы", "A2"],
-      ["B1 · Могу общаться", "B1"],
-      ["B2 · Говорю уверенно", "B2"],
-      ["C1 · Продвинутый", "C1"],
+      ["A1 · Починаю", "A1"],
+      ["A2 · Знаю основи", "A2"],
+      ["B1 · Можу спілкуватися", "B1"],
+      ["B2 · Говорю впевнено", "B2"],
+      ["C1 · Просунутий", "C1"],
       ["Не знаю", "unknown"],
     ],
   },
   {
     key: "goal",
-    question: "Для чего тебе английский?",
+    question: "Для чого тобі англійська?",
     choices: [
-      ["Свободно общаться", "Speak confidently"],
-      ["Путешествовать", "Travel"],
-      ["Для работы", "Work"],
-      ["Пройти собеседование", "Job interviews"],
-      ["Переехать", "Move abroad"],
-      ["Смотреть и читать", "Understand content"],
-      ["Подтянуть грамматику", "Improve grammar"],
-      ["Расширить словарь", "Expand vocabulary"],
+      ["Вільно спілкуватися", "Speak confidently"],
+      ["Подорожувати", "Travel"],
+      ["Для роботи", "Work"],
+      ["Пройти співбесіду", "Job interviews"],
+      ["Переїхати", "Move abroad"],
+      ["Дивитися й читати", "Understand content"],
+      ["Покращити граматику", "Improve grammar"],
+      ["Розширити словник", "Expand vocabulary"],
     ],
   },
   {
     key: "dailyGoal",
-    question: "Сколько минут в день хочешь уделять практике?",
+    question: "Скільки хвилин на день хочеш приділяти практиці?",
     choices: [
-      ["5 минут", 5],
-      ["10 минут", 10],
-      ["15 минут", 15],
-      ["30 минут", 30],
+      ["5 хвилин", 5],
+      ["10 хвилин", 10],
+      ["15 хвилин", 15],
+      ["30 хвилин", 30],
     ],
   },
   {
     key: "interests",
     question:
-      "О чём тебе интересно говорить? Выбери тему или напиши несколько своих через запятую.",
+      "Про що тобі цікаво говорити? Вибери тему або напиши кілька своїх через кому.",
     choices: [
-      ["Кино и сериалы", "Movies and TV shows"],
-      ["Технологии и игры", "Technology and games"],
-      ["Путешествия и еда", "Travel and food"],
-      ["Музыка и искусство", "Music and art"],
-      ["Спорт и здоровье", "Sports and wellbeing"],
+      ["Кіно й серіали", "Movies and TV shows"],
+      ["Технології та ігри", "Technology and games"],
+      ["Подорожі та їжа", "Travel and food"],
+      ["Музика й мистецтво", "Music and art"],
+      ["Спорт і здоров’я", "Sports and wellbeing"],
       [
-        "Удиви меня",
+        "Здивуй мене",
         "Everyday life, imaginative dilemmas and surprising ideas",
       ],
     ],
@@ -73,24 +73,24 @@ const steps: { key: string; question: string; choices: readonly Choice[] }[] = [
   {
     key: "timezone",
     question:
-      "Выбери часовой пояс для разговоров. Можно написать свой, например Asia/Tbilisi.",
+      "Вибери часовий пояс для розмов. Можна написати свій, наприклад Europe/Kyiv.",
     choices: [
-      ["Киев", "Europe/Kyiv"],
-      ["Варшава / Берлин", "Europe/Warsaw"],
+      ["Київ", "Europe/Kyiv"],
+      ["Варшава / Берлін", "Europe/Warsaw"],
       ["Лондон", "Europe/London"],
-      ["Москва / Минск", "Europe/Moscow"],
+      ["Москва / Мінськ", "Europe/Moscow"],
       ["UTC", "UTC"],
     ],
   },
   {
     key: "hour",
     question:
-      "Когда мне начинать разговор? Буду присылать новую тему раз в день по твоему времени. Отключить можно командой /pause.",
+      "Коли мені починати розмову? Надсилатиму нову тему раз на день за твоїм місцевим часом. Вимкнути можна командою /pause.",
     choices: [
-      ["Утром · 09:00", 9],
-      ["Днём · 13:00", 13],
-      ["Вечером · 19:00", 19],
-      ["Только когда напишу сам", null],
+      ["Вранці · 09:00", 9],
+      ["Удень · 13:00", 13],
+      ["Увечері · 19:00", 19],
+      ["Лише коли напишу", null],
     ],
   },
 ];
@@ -120,7 +120,7 @@ export async function beginOnboarding(
   const db = await database();
   const reply = onboardingReply(
     draft,
-    "Привет! Я твой English Coach. Давай настроим наши разговоры прямо здесь.\n\n",
+    "Привіт! Я твій English Coach. Налаштуймо наші розмови просто тут.\n\n",
   );
   await checkpoint(async (session) => {
     await db.users.updateOne(
@@ -145,11 +145,11 @@ export async function advanceOnboarding(
   const draft = user.bot?.draft;
   if (!draft)
     return {
-      text: "Эти кнопки уже неактивны. /settings — настроить профиль, /topic — новая тема.",
+      text: "Ці кнопки вже неактивні. /settings — налаштувати профіль, /topic — нова тема.",
     };
   const [, revision, action] = (data || "").split(":");
   if (data && (revision !== draft.revision || !data.startsWith("ob:")))
-    return onboardingReply(draft, "Это предыдущий шаг. Продолжим здесь:\n\n");
+    return onboardingReply(draft, "Це попередній крок. Продовжимо тут:\n\n");
   const step = steps[draft.step];
   const next: BotDraft = {
     ...draft,
@@ -167,11 +167,11 @@ export async function advanceOnboarding(
     )
       value = text.trim();
     if (value === undefined)
-      return onboardingReply(draft, "Выбери ответ кнопкой ниже.\n\n");
+      return onboardingReply(draft, "Вибери відповідь кнопкою нижче.\n\n");
     if (step.key === "hour") next.hour = value as number | null;
     else {
       const candidate = {
-        nativeLanguage: "Russian",
+        nativeLanguage: "Ukrainian",
         englishLevel: "unknown",
         goal: "Speak confidently",
         interests: "",
@@ -184,7 +184,7 @@ export async function advanceOnboarding(
       if (!parsed.success)
         return onboardingReply(
           draft,
-          "Не получилось сохранить ответ. Проверь длину текста или название часового пояса.\n\n",
+          "Не вдалося зберегти відповідь. Перевір довжину тексту або назву часового поясу.\n\n",
         );
       next.settings = parsed.data;
     }
@@ -235,7 +235,7 @@ export async function advanceOnboarding(
   const current = await db.users.findOne({ _id: user._id });
   return current?.bot?.draft
     ? onboardingReply(current.bot.draft)
-    : { text: "Настройки уже сохранены. /topic — начать разговор." };
+    : { text: "Налаштування вже збережено. /topic — почати розмову." };
 }
 
 async function checkpoint<T>(

@@ -9,17 +9,18 @@ import { ensureUser } from "@engbot/core/users";
 function secret() {
   const value = process.env.SESSION_SECRET;
   if (!value || value.length < 32)
-    throw new HttpError(503, "Вход пока не настроен.");
+    throw new HttpError(503, "Вхід ще не налаштовано.");
   return new TextEncoder().encode(value);
 }
 export async function telegramLogin(initData: string) {
   const token = process.env.TELEGRAM_BOT_TOKEN;
-  if (!token) throw new HttpError(503, "Telegram-вход пока не настроен.");
+  if (!token)
+    throw new HttpError(503, "Вхід через Telegram ще не налаштовано.");
   const data = new URLSearchParams(initData);
   const hash = data.get("hash") || "";
   data.delete("hash");
   if (new Set([...data.keys()]).size !== [...data.keys()].length)
-    throw new HttpError(401, "Некорректные данные входа.");
+    throw new HttpError(401, "Некоректні дані входу.");
   const check = [...data.entries()]
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([k, v]) => `${k}=${v}`)
@@ -33,7 +34,7 @@ export async function telegramLogin(initData: string) {
     age < -30 ||
     age > 3600
   )
-    throw new HttpError(401, "Откройте приложение заново через Telegram.");
+    throw new HttpError(401, "Відкрийте застосунок знову через Telegram.");
   const user = z
     .object({
       id: z.number().int().positive(),
@@ -57,16 +58,16 @@ export async function telegramLogin(initData: string) {
 }
 export async function currentUser() {
   const token = (await cookies()).get("engbot_session")?.value;
-  if (!token) throw new HttpError(401, "Откройте приложение через Telegram.");
+  if (!token) throw new HttpError(401, "Відкрийте застосунок через Telegram.");
   let id: string | undefined;
   try {
     id = (await jwtVerify(token, secret(), { algorithms: ["HS256"] })).payload
       .sub;
   } catch {
-    throw new HttpError(401, "Войдите снова через Telegram.");
+    throw new HttpError(401, "Увійдіть знову через Telegram.");
   }
-  if (!id) throw new HttpError(401, "Войдите снова через Telegram.");
+  if (!id) throw new HttpError(401, "Увійдіть знову через Telegram.");
   const user = await (await database()).users.findOne({ _id: id });
-  if (!user) throw new HttpError(401, "Пользователь не найден.");
+  if (!user) throw new HttpError(401, "Користувача не знайдено.");
   return user;
 }

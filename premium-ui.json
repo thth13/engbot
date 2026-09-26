@@ -1,7 +1,7 @@
 {
   "profile": "product-admin",
-  "sourceRoots": ["src"],
-  "locale": "ru-RU",
+  "sourceRoots": ["apps/web/src"],
+  "locale": "uk-UA",
   "canonicalMap": "UX-CONTRACT.md",
   "ownership": { "Select/Listbox": "native", "Date": "typed" },
   "requiredCapabilities": ["Select/Listbox", "Form", "Scrollbar", "CRUD"]

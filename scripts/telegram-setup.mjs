@@ -27,16 +27,16 @@ await call("setChatMenuButton", {
 });
 await call("setMyCommands", {
   commands: [
-    { command: "start", description: "Начать" },
-    { command: "topic", description: "Новая тема для разговора" },
-    { command: "pause", description: "Отключить ежедневные разговоры" },
-    { command: "resume", description: "Включить ежедневные разговоры" },
-    { command: "app", description: "Открыть приложение" },
+    { command: "start", description: "Почати" },
+    { command: "topic", description: "Нова тема для розмови" },
+    { command: "pause", description: "Вимкнути щоденні розмови" },
+    { command: "resume", description: "Увімкнути щоденні розмови" },
+    { command: "app", description: "Відкрити застосунок" },
     { command: "practice", description: "Практика" },
-    { command: "mistakes", description: "Мои ошибки" },
-    { command: "words", description: "Словарь" },
-    { command: "progress", description: "Прогресс" },
-    { command: "settings", description: "Настройки" },
+    { command: "mistakes", description: "Мої помилки" },
+    { command: "words", description: "Словник" },
+    { command: "progress", description: "Прогрес" },
+    { command: "settings", description: "Налаштування" },
   ],
 });
 console.log("Menu button and commands configured.");
