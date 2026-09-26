@@ -11,7 +11,7 @@ type Choice = readonly [string, string | number | null];
 const steps: { key: string; question: string; choices: readonly Choice[] }[] = [
   {
     key: "nativeLanguage",
-    question: "Якою мовою пояснювати помилки? Можна написати свою мову.",
+    question: "Якою мовою ти зазвичай спілкуєшся? Можна написати свою мову.",
     choices: [
       ["Українська", "Ukrainian"],
       ["Російська", "Russian"],
@@ -71,18 +71,6 @@ const steps: { key: string; question: string; choices: readonly Choice[] }[] = [
     ],
   },
   {
-    key: "timezone",
-    question:
-      "Вибери часовий пояс для розмов. Можна написати свій, наприклад Europe/Kyiv.",
-    choices: [
-      ["Київ", "Europe/Kyiv"],
-      ["Варшава / Берлін", "Europe/Warsaw"],
-      ["Лондон", "Europe/London"],
-      ["Москва / Мінськ", "Europe/Moscow"],
-      ["UTC", "UTC"],
-    ],
-  },
-  {
     key: "hour",
     question:
       "Коли мені починати розмову? Надсилатиму нову тему раз на день за твоїм місцевим часом. Вимкнути можна командою /pause.",
@@ -115,7 +103,7 @@ export async function beginOnboarding(
   const draft: BotDraft = {
     revision: randomBytes(6).toString("hex"),
     step: 0,
-    settings: user.settings || {},
+    settings: { timezone: "Europe/Kyiv", ...user.settings },
   };
   const db = await database();
   const reply = onboardingReply(
@@ -163,7 +151,7 @@ export async function advanceOnboarding(
       value = step.choices[Number(action)]?.[1];
     else if (
       text &&
-      ["nativeLanguage", "interests", "timezone"].includes(step.key)
+      ["nativeLanguage", "interests"].includes(step.key)
     )
       value = text.trim();
     if (value === undefined)
@@ -176,7 +164,7 @@ export async function advanceOnboarding(
         goal: "Speak confidently",
         interests: "",
         dailyGoal: 10,
-        timezone: "UTC",
+        timezone: "Europe/Kyiv",
         ...next.settings,
         [step.key]: value,
       };
@@ -184,7 +172,7 @@ export async function advanceOnboarding(
       if (!parsed.success)
         return onboardingReply(
           draft,
-          "Не вдалося зберегти відповідь. Перевір довжину тексту або назву часового поясу.\n\n",
+          "Не вдалося зберегти відповідь. Перевір довжину тексту.\n\n",
         );
       next.settings = parsed.data;
     }
