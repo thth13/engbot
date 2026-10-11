@@ -1807,3 +1807,280 @@ input[type="radio"] {
   padding-top: 12px;
   font-size: 13px;
 }
+
+/* Public browser entry: the same learning notebook, without the app shell. */
+.landing {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0 32px;
+}
+.landing-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 26px 0;
+  border-bottom: 1px solid var(--line);
+}
+.landing-header-note,
+.landing-cta-note,
+.landing-footer {
+  color: var(--muted);
+  font-size: 12px;
+}
+.landing-hero {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  align-items: center;
+  gap: 56px;
+  padding: 64px 0 72px;
+}
+.landing-intro {
+  min-width: 0;
+}
+.landing-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--primary-text);
+  font-size: 12px;
+  font-weight: 650;
+  margin-bottom: 18px;
+}
+.landing h1 {
+  font-size: clamp(32px, 4.2vw, 52px);
+  line-height: 1.1;
+  letter-spacing: -1.8px;
+  text-wrap: balance;
+}
+.landing h1 span {
+  color: var(--primary-text);
+}
+.landing-lead {
+  margin-top: 20px;
+  font-size: 16px;
+  color: var(--muted);
+  line-height: 1.6;
+  max-width: 460px;
+}
+.landing-benefits {
+  list-style: none;
+  padding: 0;
+  margin: 22px 0 26px;
+  display: grid;
+  gap: 10px;
+}
+.landing-benefits li {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 14px;
+  line-height: 1.4;
+}
+.landing-benefits svg {
+  color: var(--green);
+}
+.landing .landing-cta {
+  min-height: 54px;
+  padding: 14px 22px;
+  font-size: 15px;
+  white-space: normal;
+}
+.landing-cta-note {
+  margin-top: 10px;
+  line-height: 1.5;
+}
+.landing-unavailable {
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  color: var(--muted);
+}
+.landing-example {
+  min-width: 0;
+  padding: 28px;
+  border: 1px solid var(--line);
+  border-top: 5px solid var(--primary);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.landing-example-heading {
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  font-weight: 650;
+  margin-bottom: 28px;
+}
+.landing-example-heading svg {
+  color: var(--primary-text);
+}
+.landing-example-label {
+  color: var(--muted);
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+.landing-sentence {
+  font-family: Georgia, serif;
+  font-size: clamp(22px, 2.4vw, 28px);
+  line-height: 1.45;
+}
+.landing-sentence del {
+  color: var(--red);
+  text-decoration-thickness: 2px;
+}
+.landing-example-arrow {
+  color: var(--muted);
+  margin: 16px 0;
+}
+.landing-corrected strong {
+  color: var(--green);
+  background: var(--green-tint);
+  padding: 0 4px;
+  border-radius: 4px;
+}
+.landing-explanation {
+  margin-top: 18px;
+  color: var(--muted);
+  line-height: 1.6;
+  font-size: 13px;
+}
+.landing-example-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 24px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+  font-size: 12px;
+  font-weight: 650;
+}
+.landing-example-caption {
+  display: block;
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+.landing-details {
+  border-top: 1px solid var(--line);
+  padding: 48px 0;
+}
+.landing-section-heading h2 {
+  margin-top: 10px;
+  font-size: 28px;
+  line-height: 1.25;
+  text-wrap: balance;
+}
+.landing-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 32px;
+  margin-top: 30px;
+}
+.landing-detail-grid article > svg {
+  color: var(--primary-text);
+  margin-bottom: 14px;
+}
+.landing-detail-grid h3 {
+  margin-bottom: 10px;
+}
+.landing-detail-grid p {
+  color: var(--muted);
+  line-height: 1.65;
+}
+.landing-finish {
+  background: var(--primary-tint);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+.landing-finish p {
+  margin-top: 8px;
+  color: var(--muted);
+}
+.landing-finish .landing-cta {
+  flex-shrink: 0;
+}
+.landing-footer {
+  padding: 28px 0 max(28px, env(safe-area-inset-bottom));
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  line-height: 1.5;
+}
+@media (max-width: 760px) {
+  .landing {
+    padding-left: max(18px, env(safe-area-inset-left));
+    padding-right: max(18px, env(safe-area-inset-right));
+  }
+  .landing-header {
+    padding: max(16px, env(safe-area-inset-top)) 0 16px;
+  }
+  .landing-header-note {
+    display: none;
+  }
+  .landing-hero {
+    grid-template-columns: 1fr;
+    gap: 28px;
+    padding: 26px 0 32px;
+  }
+  .landing-eyebrow {
+    margin-bottom: 14px;
+  }
+  .landing h1 {
+    font-size: clamp(30px, 8.5vw, 44px);
+    letter-spacing: -1.2px;
+  }
+  .landing-lead {
+    margin-top: 14px;
+    font-size: 14px;
+  }
+  .landing-benefits {
+    margin: 16px 0 20px;
+    gap: 8px;
+  }
+  .landing-benefits li {
+    font-size: 13px;
+  }
+  .landing .landing-cta {
+    width: 100%;
+  }
+  .landing-cta-note {
+    text-align: center;
+    font-size: 11px;
+  }
+  .landing-example {
+    padding: 20px;
+  }
+  .landing-example-heading {
+    margin-bottom: 18px;
+  }
+  .landing-details {
+    padding: 30px 0;
+  }
+  .landing-section-heading h2 {
+    font-size: 24px;
+  }
+  .landing-detail-grid {
+    grid-template-columns: 1fr;
+    gap: 24px;
+    margin-top: 24px;
+  }
+  .landing-detail-grid article > svg {
+    margin-bottom: 8px;
+  }
+  .landing-finish {
+    padding: 22px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 20px;
+  }
+  .landing-footer {
+    flex-direction: column;
+    gap: 6px;
+  }
+}

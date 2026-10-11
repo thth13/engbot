@@ -34,6 +34,8 @@ Body: Avenir Next → Segoe UI → Arial. Display: Trebuchet MS → Avenir Next.
 
 Fixed 242px desktop sidebar; max 1400px workspace, 42px page inset. Below 760px: document scrolling, 18px inset, five-item bottom navigation with safe-area support. Profile remains accessible in header; progress remains a desktop navigation item and is linked from the mobile dashboard. Main cards use 22px radius and 20–25px inner spacing.
 
+Public homepage: ordinary browser visits render a Ukrainian landing immediately, including when a session cookie exists. Telegram launch data selects the existing Mini App; server verification still owns authentication. The landing uses the same runtime tokens and local typefaces, a 1120px maximum width, and a sentence correction example clearly labeled as a demonstration. Below 760px, the offer, three benefits and Telegram CTA precede the example and supporting detail, with natural document scrolling and safe-area insets. The CTA links directly to the configured bot with `start=web`; no invented claims about pricing, learner counts or results.
+
 ## Components and motion
 
 Primary buttons use pink with dark labels; the CTA within the pink hero uses near-black with light text. Active desktop and mobile navigation use pink fills. Chart bars and meters use the primary pink. Error and success colors retain their semantic meaning.
