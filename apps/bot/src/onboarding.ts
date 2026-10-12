@@ -1,5 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { database } from "@engbot/core/db";
+import { notifyAdmins } from "@engbot/core/notifications";
 import {
   settingsSchema,
   type BotDraft,
@@ -149,10 +150,7 @@ export async function advanceOnboarding(
     let value: string | number | null | undefined;
     if (data && /^\d+$/.test(action || ""))
       value = step.choices[Number(action)]?.[1];
-    else if (
-      text &&
-      ["nativeLanguage", "interests"].includes(step.key)
-    )
+    else if (text && ["nativeLanguage", "interests"].includes(step.key))
       value = text.trim();
     if (value === undefined)
       return onboardingReply(draft, "Вибери відповідь кнопкою нижче.\n\n");
@@ -202,7 +200,16 @@ export async function advanceOnboarding(
         );
       return result;
     });
-    if (changed.modifiedCount) return null;
+    if (changed.modifiedCount) {
+      if (user.bot?.hour === undefined)
+        await notifyAdmins({
+          id: `telegram:${updateId}:onboarding`,
+          event: "Успешно пройден вступительный опрос в боте",
+          user,
+          details: `Уровень: ${next.settings.englishLevel}\nЦель: ${next.settings.goal}`,
+        });
+      return null;
+    }
   } else {
     const changed = await checkpoint(async (session) => {
       const result = await db.users.updateOne(

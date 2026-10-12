@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+import { after, NextRequest, NextResponse } from "next/server";
+import { createHash } from "node:crypto";
 import { z } from "zod";
 import { currentUser, telegramLogin } from "@/lib/auth";
 import { database } from "@engbot/core/db";
@@ -12,6 +13,7 @@ import {
 } from "@engbot/core/learning";
 import { settingsSchema } from "@engbot/core/schema";
 import { HttpError } from "@engbot/core/errors";
+import { notifyAdmins } from "@engbot/core/notifications";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 async function handle(
@@ -40,6 +42,59 @@ async function handle(
     if (!origin || origin !== expected)
       throw new HttpError(403, "Неприпустиме джерело запиту.");
     const body = await request.json();
+    if (path === "events") {
+      const event = z
+        .object({
+          event: z.enum(["landing_visit", "landing_bottom", "profile_visit"]),
+          visitId: z.string().uuid(),
+          path: z.enum(["/", "/home", "/profile"]),
+        })
+        .parse(body);
+      if (event.event !== "profile_visit" && event.path === "/profile")
+        throw new HttpError(400, "Некоректна сторінка події.");
+      if (
+        !process.env.ADMIN_NOTIFICATION_BOT_TOKEN ||
+        !process.env.ADMIN_TELEGRAM_IDS
+      )
+        return NextResponse.json({ ok: true });
+      const user =
+        event.event === "profile_visit" ? await currentUser() : undefined;
+      const db = await database();
+      // Bound anonymous notifications without storing visitor IP addresses.
+      const source =
+        user?._id ||
+        request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+        "unknown";
+      const bucket = Math.floor(Date.now() / 60000);
+      const key = createHash("sha256").update(source).digest("hex");
+      const limit = await db.notificationLimits.findOneAndUpdate(
+        { _id: `${key}:${bucket}` },
+        {
+          $inc: { count: 1 },
+          $setOnInsert: { expiresAt: new Date(Date.now() + 3600000) },
+        },
+        { upsert: true, returnDocument: "after" },
+      );
+      if ((limit?.count || 0) > 30)
+        throw new HttpError(429, "Забагато подій. Спробуйте пізніше.");
+      const events = {
+        landing_visit: "Посещение главной страницы — лендинг",
+        landing_bottom: "Прокрутка до низа лендинга",
+        profile_visit:
+          event.path === "/profile"
+            ? "Открыт профиль пользователя"
+            : "Посещение главной страницы — кабинет пользователя",
+      };
+      after(() =>
+        notifyAdmins({
+          id: `web:${event.visitId}:${event.event}`,
+          event: events[event.event],
+          user,
+          details: `Страница: ${event.path}\nID посещения: ${event.visitId}`,
+        }),
+      );
+      return NextResponse.json({ ok: true });
+    }
     if (path === "auth/telegram") {
       await telegramLogin(
         z.object({ initData: z.string().min(1).max(12000) }).parse(body)

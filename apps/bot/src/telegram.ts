@@ -3,6 +3,7 @@ import { database } from "@engbot/core/db";
 import { ensureUser } from "@engbot/core/users";
 import { HttpError } from "@engbot/core/errors";
 import { analyze, conversationStarter } from "@engbot/core/learning";
+import { notifyAdmins } from "@engbot/core/notifications";
 import type { BotReply, User } from "@engbot/core/schema";
 import {
   beginOnboarding,
@@ -182,6 +183,13 @@ export async function telegramUpdate(body: unknown) {
     const command = text?.startsWith("/")
       ? text.split(/\s/)[0].split("@")[0]
       : undefined;
+    if (update.message)
+      await notifyAdmins({
+        id: `telegram:${id}:message`,
+        event: command === "/start" ? "Старт бота (/start)" : "Сообщение в бот",
+        user,
+        details: `Сообщение: ${text || "[Нетекстовое сообщение]"}`,
+      });
     let payload = old?.payload;
     if (!payload) {
       try {

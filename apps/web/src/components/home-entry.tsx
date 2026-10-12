@@ -1,6 +1,7 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { useEffect, useRef, useSyncExternalStore } from "react";
+import { trackEvent } from "@/lib/track-event";
 import { CoachApp } from "./coach-app";
 import { Landing } from "./landing";
 
@@ -29,6 +30,34 @@ export function HomeEntry({ botUrl }: { botUrl: string | null }) {
     isTelegramLaunch,
     browserLanding,
   );
+  const visitId = useRef<string | null>(null);
+  const bottomSent = useRef(false);
+
+  useEffect(() => {
+    if (isWebApp) return;
+    // Let the hydration snapshot settle before classifying a Telegram launch.
+    const timer = window.setTimeout(() => {
+      if (isTelegramLaunch()) return;
+      visitId.current ??= crypto.randomUUID();
+      trackEvent("landing_visit", visitId.current);
+    }, 0);
+    function onScroll() {
+      if (isTelegramLaunch() || bottomSent.current || !visitId.current) return;
+      const root = document.documentElement;
+      if (
+        window.scrollY > 0 &&
+        window.scrollY + window.innerHeight >= root.scrollHeight - 8
+      ) {
+        bottomSent.current = true;
+        trackEvent("landing_bottom", visitId.current);
+      }
+    }
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("scroll", onScroll);
+    };
+  }, [isWebApp]);
 
   return isWebApp ? <CoachApp page="home" /> : <Landing botUrl={botUrl} />;
 }

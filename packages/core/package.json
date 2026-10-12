@@ -8,6 +8,7 @@
     "./db": "./src/db.ts",
     "./errors": "./src/errors.ts",
     "./learning": "./src/learning.ts",
+    "./notifications": "./src/notifications.ts",
     "./schema": "./src/schema.ts",
     "./users": "./src/users.ts"
   },

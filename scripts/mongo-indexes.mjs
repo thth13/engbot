@@ -18,6 +18,12 @@ try {
   await db
     .collection("users")
     .createIndex({ "bot.enabled": 1, "bot.lastContactAt": 1 });
+  await db
+    .collection("adminNotifications")
+    .createIndex({ createdAt: 1 }, { expireAfterSeconds: 30 * 86400 });
+  await db
+    .collection("adminNotificationLimits")
+    .createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
   console.log("Indexes created.");
 } finally {
   await client.close();

@@ -31,6 +31,7 @@ import {
 import type { AppData, Settings } from "@engbot/core/schema";
 import { settingsSchema } from "@engbot/core/schema";
 import { loadTelegramWebApp } from "@/lib/telegram-web-app";
+import { trackEvent } from "@/lib/track-event";
 import { Button, Empty, Meter } from "./ui";
 import { LanguageSelect, languageLabel } from "./language-select";
 const navigation = [
@@ -105,6 +106,15 @@ export function CoachApp({ page }: { page: string }) {
     [bot, setBot] = useState<string | null>(null),
     [needsLogin, setNeedsLogin] = useState(false);
   const loginRequest = useRef<AbortController | null>(null);
+  const trackedPage = useRef<string | null>(null);
+  const authenticatedUserId = data?.user._id;
+  useEffect(() => {
+    if (!authenticatedUserId) return;
+    if (trackedPage.current === page) return;
+    trackedPage.current = page;
+    if (page === "home" || page === "profile")
+      trackEvent("profile_visit", crypto.randomUUID());
+  }, [authenticatedUserId, page]);
   const reload = useCallback(async () => {
     const value = await api<AppData>("me");
     setData(value);

@@ -34,6 +34,8 @@ MONGODB_URI=<connection-string>
 MONGODB_DB=engbot
 TELEGRAM_BOT_TOKEN=<bot-token>
 TELEGRAM_BOT_USERNAME=<username-without-@>
+ADMIN_NOTIFICATION_BOT_TOKEN=<admin-notification-bot-token>
+ADMIN_TELEGRAM_IDS=<telegram-user-id,another-telegram-user-id>
 SESSION_SECRET=<random-string-at-least-32-characters>
 OPENAI_API_KEY=<api-key>
 AI_MODEL=gpt-5.4
@@ -69,6 +71,8 @@ APP_URL=https://your-app.vercel.app
 MONGODB_URI=<same-connection-string>
 MONGODB_DB=engbot
 TELEGRAM_BOT_TOKEN=<same-bot-token>
+ADMIN_NOTIFICATION_BOT_TOKEN=<same-admin-notification-bot-token>
+ADMIN_TELEGRAM_IDS=<same-telegram-user-ids>
 OPENAI_API_KEY=<api-key>
 AI_MODEL=gpt-5.4
 ```

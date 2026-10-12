@@ -36,6 +36,14 @@ export async function database() {
     exercises: db.collection<Exercise>("exercises"),
     activity: db.collection<Activity>("activity"),
     limits: db.collection<{ _id: string; count: number }>("limits"),
+    notifications: db.collection<{ _id: string; createdAt: Date }>(
+      "adminNotifications",
+    ),
+    notificationLimits: db.collection<{
+      _id: string;
+      count: number;
+      expiresAt: Date;
+    }>("adminNotificationLimits"),
     starters: db.collection<{
       _id: string;
       userId: string;
