@@ -3,6 +3,10 @@ import { database } from "./db";
 type Notification = {
   id: string;
   event: string;
+  source: "Browser" | "Telegram Mini App" | "Telegram Bot";
+  page?: string;
+  visitorId?: string;
+  ip?: string;
   user?: { _id: string; name: string };
   details?: string;
 };
@@ -22,12 +26,15 @@ export async function notifyAdmins(notification: Notification) {
   try {
     const db = await database();
     const text = [
-      "Project: EngBot",
-      `Событие: ${notification.event}`,
-      `Время: ${new Date().toISOString()}`,
+      notification.event,
+      "🚀 Project: EngBot",
+      notification.page ? `📄 Page: ${notification.page}` : undefined,
+      `📍 Source: ${notification.source}`,
       notification.user
-        ? `Пользователь: ${notification.user.name || "Без имени"} (Telegram ID: ${notification.user._id})`
-        : "Пользователь: анонимный посетитель",
+        ? `👤 User: ${notification.user.name || "Без імені"}\n🆔 Telegram ID: ${notification.user._id}`
+        : `👤 Visitor: ${notification.visitorId?.slice(0, 8) || "Unknown"}`,
+      notification.ip ? `🌐 IP: ${notification.ip}` : undefined,
+      `🕒 Time: ${new Date().toISOString()}`,
       notification.details,
     ]
       .filter(Boolean)

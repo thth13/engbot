@@ -1,7 +1,9 @@
 import { after, NextRequest, NextResponse } from "next/server";
 import { createHash } from "node:crypto";
+import { isIP } from "node:net";
 import { z } from "zod";
 import { currentUser, telegramLogin } from "@/lib/auth";
+import { TELEGRAM_BOT_USERNAME } from "@/lib/telegram-bot";
 import { database } from "@engbot/core/db";
 import {
   analyze,
@@ -25,7 +27,7 @@ async function handle(
     if (request.method === "GET") {
       if (path === "config")
         return NextResponse.json({
-          botUsername: process.env.TELEGRAM_BOT_USERNAME || null,
+          botUsername: TELEGRAM_BOT_USERNAME,
         });
       if (path === "me")
         return NextResponse.json(await snapshot(await currentUser()), {
@@ -45,8 +47,15 @@ async function handle(
     if (path === "events") {
       const event = z
         .object({
-          event: z.enum(["landing_visit", "landing_bottom", "profile_visit"]),
+          event: z.enum([
+            "landing_visit",
+            "landing_bottom",
+            "profile_visit",
+            "telegram_click",
+          ]),
           visitId: z.string().uuid(),
+          visitorId: z.string().uuid().optional(),
+          source: z.enum(["Browser", "Telegram Mini App"]).default("Browser"),
           path: z.enum(["/", "/home", "/profile"]),
         })
         .parse(body);
@@ -61,10 +70,18 @@ async function handle(
         event.event === "profile_visit" ? await currentUser() : undefined;
       const db = await database();
       // Bound anonymous notifications without storing visitor IP addresses.
-      const source =
-        user?._id ||
-        request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-        "unknown";
+      const forwardedIp = request.headers
+        .get("x-forwarded-for")
+        ?.split(",")[0]
+        ?.trim();
+      const realIp = request.headers.get("x-real-ip")?.trim();
+      const ip =
+        forwardedIp && isIP(forwardedIp)
+          ? forwardedIp
+          : realIp && isIP(realIp)
+            ? realIp
+            : undefined;
+      const source = user?._id || ip || "unknown";
       const bucket = Math.floor(Date.now() / 60000);
       const key = createHash("sha256").update(source).digest("hex");
       const limit = await db.notificationLimits.findOneAndUpdate(
@@ -78,19 +95,23 @@ async function handle(
       if ((limit?.count || 0) > 30)
         throw new HttpError(429, "Забагато подій. Спробуйте пізніше.");
       const events = {
-        landing_visit: "Посещение главной страницы — лендинг",
-        landing_bottom: "Прокрутка до низа лендинга",
+        landing_visit: "🏠 Відкрили головну сторінку — лендинг",
+        landing_bottom: "📜 Доскролили до низу сторінки",
+        telegram_click: "👆 Натиснули «Почати в Telegram»",
         profile_visit:
           event.path === "/profile"
-            ? "Открыт профиль пользователя"
-            : "Посещение главной страницы — кабинет пользователя",
+            ? "👤 Відкрили профіль користувача"
+            : "🎓 Відкрили головну сторінку — кабінет користувача",
       };
       after(() =>
         notifyAdmins({
           id: `web:${event.visitId}:${event.event}`,
           event: events[event.event],
+          source: event.source,
+          page: event.path,
+          visitorId: event.visitorId || event.visitId,
+          ip: ip || "Unknown",
           user,
-          details: `Страница: ${event.path}\nID посещения: ${event.visitId}`,
         }),
       );
       return NextResponse.json({ ok: true });

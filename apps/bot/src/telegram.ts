@@ -186,9 +186,13 @@ export async function telegramUpdate(body: unknown) {
     if (update.message)
       await notifyAdmins({
         id: `telegram:${id}:message`,
-        event: command === "/start" ? "Старт бота (/start)" : "Сообщение в бот",
+        event:
+          command === "/start"
+            ? "🤖 Запустили бота (/start)"
+            : "💬 Повідомлення в бот",
+        source: "Telegram Bot",
         user,
-        details: `Сообщение: ${text || "[Нетекстовое сообщение]"}`,
+        details: `✉️ Message: ${text || "[Нетекстове повідомлення]"}`,
       });
     let payload = old?.payload;
     if (!payload) {

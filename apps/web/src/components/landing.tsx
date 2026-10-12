@@ -1,3 +1,5 @@
+"use client";
+
 import {
   ArrowDown,
   ArrowRight,
@@ -8,10 +10,15 @@ import {
   Sparkles,
 } from "lucide-react";
 import Link from "next/link";
+import { trackEvent } from "@/lib/track-event";
 
 function BotLink({ botUrl }: { botUrl: string | null }) {
   return botUrl ? (
-    <a className="button landing-cta" href={botUrl}>
+    <a
+      className="button landing-cta"
+      href={botUrl}
+      onClick={() => trackEvent("telegram_click", crypto.randomUUID())}
+    >
       <Send size={19} aria-hidden="true" />
       Почати в Telegram
       <ArrowRight size={19} aria-hidden="true" />

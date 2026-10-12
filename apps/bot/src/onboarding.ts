@@ -204,9 +204,10 @@ export async function advanceOnboarding(
       if (user.bot?.hour === undefined)
         await notifyAdmins({
           id: `telegram:${updateId}:onboarding`,
-          event: "Успешно пройден вступительный опрос в боте",
+          event: "✅ Успішно пройшли вступне опитування в боті",
+          source: "Telegram Bot",
           user,
-          details: `Уровень: ${next.settings.englishLevel}\nЦель: ${next.settings.goal}`,
+          details: `📊 Level: ${next.settings.englishLevel}\n🎯 Goal: ${next.settings.goal}`,
         });
       return null;
     }
