@@ -31,6 +31,7 @@ import {
 import type { AppData, Settings } from "@engbot/core/schema";
 import { settingsSchema } from "@engbot/core/schema";
 import { loadTelegramWebApp } from "@/lib/telegram-web-app";
+import { trackWebEvent } from "@/lib/telemetry";
 import { trackEvent } from "@/lib/track-event";
 import { Button, Empty, Meter, Pagination } from "./ui";
 import { LanguageSelect, languageLabel } from "./language-select";
@@ -112,6 +113,16 @@ export function CoachApp({ page }: { page: string }) {
   const loginRequest = useRef<AbortController | null>(null);
   const trackedPage = useRef<string | null>(null);
   const authenticatedUserId = data?.user._id;
+  const loggedAuthentication = useRef<string | null>(null);
+  useEffect(() => {
+    if (
+      !authenticatedUserId ||
+      loggedAuthentication.current === authenticatedUserId
+    )
+      return;
+    loggedAuthentication.current = authenticatedUserId;
+    trackWebEvent("web_app_authenticated");
+  }, [authenticatedUserId]);
   useEffect(() => {
     if (!authenticatedUserId) return;
     if (trackedPage.current === page) return;
@@ -652,8 +663,16 @@ function Profile({
   const onboarding = !data.user.settings;
   const [step, setStep] = useState(0);
   const questionRef = useRef<HTMLHeadingElement>(null);
+  const loggedOnboardingStep = useRef<number | null>(null);
   useEffect(() => {
-    if (onboarding) questionRef.current?.focus();
+    if (onboarding) {
+      questionRef.current?.focus();
+      // LOGGING: the current unanswered web onboarding question.
+      if (loggedOnboardingStep.current !== step) {
+        loggedOnboardingStep.current = step;
+        trackWebEvent("web_onboarding_step", { step: step + 1 });
+      }
+    }
   }, [step, onboarding]);
   const draftKey = `engbot:profile:${data.user._id}`;
   const [form, setForm] = useState<Settings>(() => {

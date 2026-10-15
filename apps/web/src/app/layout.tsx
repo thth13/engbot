@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { WebEventLogger } from "@/components/web-event-logger";
 export const metadata: Metadata = {
   title: "English Coach — learn from your mistakes",
   description:
@@ -18,7 +19,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <WebEventLogger />
+        {children}
+      </body>
     </html>
   );
 }

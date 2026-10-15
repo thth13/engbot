@@ -16,6 +16,8 @@ import {
 import { settingsSchema } from "@engbot/core/schema";
 import { HttpError } from "@engbot/core/errors";
 import { readAdminData } from "@/lib/uzerz";
+import { eventLoggingEnabled, logEvent } from "@engbot/core/events";
+import { saveWebEvent } from "@/lib/web-event-logging";
 import { notifyAdmins } from "@engbot/core/notifications";
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -45,6 +47,13 @@ async function handle(
     if (!origin || origin !== expected)
       throw new HttpError(403, "Request origin is not allowed.");
     const body = await request.json();
+    if (path === "telemetry") {
+      await saveWebEvent(body, request);
+      return NextResponse.json(
+        { ok: true },
+        { headers: { "Cache-Control": "no-store" } },
+      );
+    }
     if (path === "events") {
       const event = z
         .object({
@@ -132,7 +141,37 @@ async function handle(
     const db = await database();
     if (path === "profile") {
       const settings = settingsSchema.parse(body);
-      await db.users.updateOne({ _id: user._id }, { $set: { settings } });
+      const firstOnboarding = !user.settings;
+      // LOGGING: completion is recorded only after the server validates and saves settings.
+      const result = await db.users.updateOne(
+        firstOnboarding ? { _id: user._id, settings: null } : { _id: user._id },
+        {
+          $set: {
+            settings,
+            ...(firstOnboarding && eventLoggingEnabled()
+              ? {
+                  "onboardingProgress.web": {
+                    status: "completed" as const,
+                    step: 5,
+                    stepName: "completed",
+                    maxStep: 5,
+                    totalSteps: 5,
+                    updatedAt: new Date(),
+                    completedAt: new Date(),
+                  },
+                }
+              : {}),
+          },
+        },
+      );
+      if (firstOnboarding && result.modifiedCount)
+        await logEvent({
+          _id: `web:onboarding:${user._id}:completed`,
+          event: "web_onboarding_completed",
+          source: "Web App",
+          userId: user._id,
+          details: { initial: true, totalSteps: 5 },
+        });
       return NextResponse.json({ ok: true });
     }
     if (path === "chat") {

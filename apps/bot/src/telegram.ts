@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { database } from "@engbot/core/db";
+import { logEvent } from "@engbot/core/events";
 import { ensureUser } from "@engbot/core/users";
 import { HttpError } from "@engbot/core/errors";
 import { analyze, conversationStarter } from "@engbot/core/learning";
@@ -269,6 +270,14 @@ export async function telegramUpdate(body: unknown) {
     const command = text?.startsWith("/")
       ? text.split(/\s/)[0].split("@")[0]
       : undefined;
+    // LOGGING: /start is deduplicated by the Telegram update ID.
+    if (command === "/start")
+      await logEvent({
+        _id: `bot:start:${id}`,
+        event: "bot_start",
+        source: "Telegram Bot",
+        userId: uid,
+      });
     if (update.message)
       await notifyAdmins({
         id: `telegram:${id}:message`,

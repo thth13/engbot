@@ -18,6 +18,7 @@ const formatDate = (value: string) => {
       }).format(date);
 };
 const systemCollections: Record<string, string> = {
+  eventLimits: "Event logging limits",
   limits: "Daily AI limits",
   trialUsage: "Trial usage",
   telegramInbox: "Telegram inbox",

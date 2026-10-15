@@ -70,6 +70,26 @@ export const gradeSchema = z.object({
   correct: z.boolean(),
   feedback: z.string().min(1).max(1000),
 });
+export interface OnboardingProgress {
+  status: "in_progress" | "completed";
+  step: number;
+  stepName: string;
+  maxStep: number;
+  totalSteps: number;
+  updatedAt: Date;
+  completedAt?: Date;
+}
+export interface EventLog {
+  _id: string;
+  event: string;
+  source: "Telegram Bot" | "Telegram Mini App" | "Browser" | "Web App";
+  userId?: string;
+  visitorId?: string;
+  visitId?: string;
+  path?: string;
+  details?: Record<string, string | number | boolean>;
+  createdAt: Date;
+}
 export interface BotDraft {
   revision: string;
   step: number;
@@ -95,6 +115,10 @@ export interface User {
   longestStreak: number;
   lastActiveDay: string | null;
   createdAt: Date;
+  onboardingProgress?: {
+    bot?: OnboardingProgress;
+    web?: OnboardingProgress;
+  };
   premiumUntil?: Date;
   trialExpiredNoticeAt?: Date;
   trialNoticeLeaseUntil?: Date;

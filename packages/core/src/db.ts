@@ -6,6 +6,7 @@ import type {
   Message,
   Exercise,
   Activity,
+  EventLog,
 } from "./schema";
 const globalDb = globalThis as typeof globalThis & {
   mongo?: Promise<MongoClient>;
@@ -30,6 +31,10 @@ export async function database() {
   return {
     client,
     users: db.collection<User>("users"),
+    events: db.collection<EventLog>("eventLogs"),
+    eventLimits: db.collection<{ _id: string; count: number; expiresAt: Date }>(
+      "eventLogLimits",
+    ),
     mistakes: db.collection<Mistake>("mistakes"),
     words: db.collection<Word>("words"),
     messages: db.collection<Message>("messages"),

@@ -1,4 +1,5 @@
 import { randomBytes } from "node:crypto";
+import { eventLoggingEnabled, logEvent } from "@engbot/core/events";
 import { database } from "@engbot/core/db";
 import { notifyAdmins } from "@engbot/core/notifications";
 import {
@@ -111,6 +112,40 @@ export async function beginOnboarding(
     "Hi! I’m your English Coach. Let’s set up our conversations right here.\n\n",
   );
   await checkpoint(async (session) => {
+    // LOGGING: retain the latest unanswered question even after the user leaves.
+    if (eventLoggingEnabled()) {
+      await db.users.updateOne(
+        { _id: user._id },
+        {
+          $set: {
+            "onboardingProgress.bot": {
+              status: "in_progress",
+              step: 1,
+              stepName: steps[0].key,
+              maxStep: 1,
+              totalSteps: steps.length,
+              updatedAt: new Date(),
+            },
+          },
+        },
+        { session },
+      );
+      await logEvent(
+        {
+          _id: `bot:onboarding:${updateId}:start`,
+          event: "bot_onboarding_step",
+          source: "Telegram Bot",
+          userId: user._id,
+          details: {
+            step: 1,
+            stepName: steps[0].key,
+            totalSteps: steps.length,
+            initial: user.bot?.hour === undefined,
+          },
+        },
+        session,
+      );
+    }
     await db.users.updateOne(
       { _id: user._id },
       { $set: { "bot.draft": draft } },
@@ -197,6 +232,36 @@ export async function advanceOnboarding(
         },
         { session },
       );
+      if (result.modifiedCount && eventLoggingEnabled()) {
+        await db.users.updateOne(
+          { _id: user._id },
+          {
+            $set: {
+              "onboardingProgress.bot.status": "completed",
+              "onboardingProgress.bot.step": steps.length,
+              "onboardingProgress.bot.stepName": "completed",
+              "onboardingProgress.bot.totalSteps": steps.length,
+              "onboardingProgress.bot.updatedAt": new Date(),
+              "onboardingProgress.bot.completedAt": new Date(),
+            },
+            $max: { "onboardingProgress.bot.maxStep": steps.length },
+          },
+          { session },
+        );
+        await logEvent(
+          {
+            _id: `bot:onboarding:${updateId}:completed`,
+            event: "bot_onboarding_completed",
+            source: "Telegram Bot",
+            userId: user._id,
+            details: {
+              initial: user.bot?.hour === undefined,
+              totalSteps: steps.length,
+            },
+          },
+          session,
+        );
+      }
       if (result.modifiedCount)
         await db.updates.updateOne(
           { _id: updateId },
@@ -223,6 +288,37 @@ export async function advanceOnboarding(
         { $set: { "bot.draft": next } },
         { session },
       );
+      if (result.modifiedCount && eventLoggingEnabled()) {
+        await db.users.updateOne(
+          { _id: user._id },
+          {
+            $set: {
+              "onboardingProgress.bot.status": "in_progress",
+              "onboardingProgress.bot.step": next.step + 1,
+              "onboardingProgress.bot.stepName": steps[next.step].key,
+              "onboardingProgress.bot.totalSteps": steps.length,
+              "onboardingProgress.bot.updatedAt": new Date(),
+            },
+            $max: { "onboardingProgress.bot.maxStep": next.step + 1 },
+          },
+          { session },
+        );
+        await logEvent(
+          {
+            _id: `bot:onboarding:${updateId}:step`,
+            event: "bot_onboarding_step",
+            source: "Telegram Bot",
+            userId: user._id,
+            details: {
+              step: next.step + 1,
+              stepName: steps[next.step].key,
+              totalSteps: steps.length,
+              direction: action === "back" ? "back" : "next",
+            },
+          },
+          session,
+        );
+      }
       if (result.modifiedCount)
         await db.updates.updateOne(
           { _id: updateId },

@@ -2,7 +2,7 @@
 
 let visitorId: string | undefined;
 
-function currentVisitorId() {
+export function currentVisitorId() {
   if (visitorId) return visitorId;
   try {
     visitorId =
