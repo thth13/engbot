@@ -12,6 +12,11 @@ try {
       .collection(name)
       .createIndex({ userId: 1, nextReview: 1, mastery: 1 });
   await db.collection("activity").createIndex({ userId: 1, day: -1 });
+  await db.collection("payments").createIndex({ userId: 1, createdAt: -1 });
+  await db.collection("telegramInbox").createIndex({ updateId: 1 });
+  await db
+    .collection("users")
+    .createIndex({ trialExpiredNoticeAt: 1, createdAt: 1 });
   await db
     .collection("exercises")
     .createIndex({ userId: 1, sourceId: 1, attemptedAt: 1 });

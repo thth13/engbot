@@ -29,6 +29,8 @@ await call("setMyCommands", {
   commands: [
     { command: "start", description: "Start" },
     { command: "topic", description: "New conversation topic" },
+    { command: "premium", description: "Get Premium for 30 days" },
+    { command: "paysupport", description: "Payment help" },
     { command: "pause", description: "Turn off daily conversations" },
     { command: "resume", description: "Turn on daily conversations" },
     { command: "app", description: "Open the app" },

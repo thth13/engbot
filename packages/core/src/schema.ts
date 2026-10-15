@@ -95,6 +95,9 @@ export interface User {
   longestStreak: number;
   lastActiveDay: string | null;
   createdAt: Date;
+  premiumUntil?: Date;
+  trialExpiredNoticeAt?: Date;
+  trialNoticeLeaseUntil?: Date;
   bot?: {
     chatId: number;
     draft?: BotDraft;

@@ -2,10 +2,79 @@ import { setTimeout as delay } from "node:timers/promises";
 import { database } from "@engbot/core/db";
 import { conversationStarter, dayKey } from "@engbot/core/learning";
 import { telegramCall, TelegramDeliveryError } from "./api";
+import {
+  DAY,
+  TRIAL_DAYS,
+  hasPremium,
+  trialEnded,
+  premiumReply,
+} from "@engbot/core/billing";
+
+async function notifyExpiredTrials(signal: AbortSignal) {
+  const db = await database();
+  const now = new Date();
+  const eligible = {
+    createdAt: { $lte: new Date(now.getTime() - TRIAL_DAYS * DAY) },
+    "bot.chatId": { $exists: true },
+    trialExpiredNoticeAt: { $exists: false },
+    $and: [
+      {
+        $or: [
+          { premiumUntil: { $exists: false } },
+          { premiumUntil: { $lte: now } },
+        ],
+      },
+      {
+        $or: [
+          { trialNoticeLeaseUntil: { $exists: false } },
+          { trialNoticeLeaseUntil: { $lte: now } },
+        ],
+      },
+    ],
+  };
+  const cursor = db.users.find(eligible).limit(100);
+  try {
+    for await (const user of cursor) {
+      if (signal.aborted) break;
+      const leaseUntil = new Date(Date.now() + 5 * 60000);
+      const claim = await db.users.updateOne(
+        { ...eligible, _id: user._id },
+        { $set: { trialNoticeLeaseUntil: leaseUntil } },
+      );
+      if (!claim.modifiedCount) continue;
+      try {
+        // Payments may have arrived while this batch was being processed.
+        const current = await db.users.findOne({ _id: user._id });
+        if (!current || hasPremium(current)) continue;
+        await telegramCall("sendMessage", {
+          chat_id: user.bot!.chatId,
+          ...premiumReply(),
+        });
+        await db.users.updateOne(
+          { _id: user._id },
+          { $set: { trialExpiredNoticeAt: new Date() } },
+        );
+      } catch (error) {
+        if (error instanceof TelegramDeliveryError && error.code === 403) {
+          await db.users.updateOne(
+            { _id: user._id },
+            {
+              $set: { trialExpiredNoticeAt: new Date(), "bot.enabled": false },
+            },
+          );
+        }
+        console.error("Trial expiration notification failed");
+      }
+    }
+  } finally {
+    await cursor.close();
+  }
+}
 
 export async function runConversations(signal: AbortSignal) {
   while (!signal.aborted) {
     try {
+      await notifyExpiredTrials(signal);
       const db = await database();
       const now = new Date();
       const inactiveBefore = new Date(now.getTime() - 60 * 60 * 1000);
@@ -24,6 +93,7 @@ export async function runConversations(signal: AbortSignal) {
       try {
         for await (const user of cursor) {
           if (signal.aborted) break;
+          if (!hasPremium(user) && trialEnded(user)) continue;
           const settings = user.settings!;
           const day = dayKey(now, settings.timezone);
           const hour = Number(

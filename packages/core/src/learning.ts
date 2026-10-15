@@ -4,6 +4,7 @@ import { database } from "./db";
 import { ai } from "./ai";
 import { HttpError } from "./errors";
 import { rateLimit } from "./users";
+import { reserveTrialMessage } from "./billing";
 import type { User, Review, Correction } from "./schema";
 const DAY = 86400000;
 export const dayKey = (date: Date, timezone: string) =>
@@ -94,6 +95,7 @@ export async function analyze(
   const id = `${user._id}:${requestId}`;
   const existing = await db.messages.findOne({ _id: id });
   if (existing) return existing.analysis;
+  await reserveTrialMessage(user._id, requestId);
   await rateLimit(user._id);
   const analysis = await ai.analyzeMessage(
     text,

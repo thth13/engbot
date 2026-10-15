@@ -11,12 +11,41 @@ import {
   onboardingReply,
 } from "./onboarding";
 import { telegramCall, TelegramDeliveryError } from "./api";
+import {
+  AccessError,
+  hasPremium,
+  trialEnded,
+  premiumReply,
+  reserveTrialMessage,
+} from "@engbot/core/billing";
+import { acceptPayment, sendPremiumInvoice, validPayment } from "./payments";
 const sender = z.object({ id: z.number(), first_name: z.string() });
 const chat = z.object({ id: z.number(), type: z.string() });
 const updateSchema = z.object({
   update_id: z.number().int(),
   message: z
-    .object({ chat, from: sender, text: z.string().optional() })
+    .object({
+      chat,
+      from: sender,
+      text: z.string().optional(),
+      successful_payment: z
+        .object({
+          currency: z.string(),
+          total_amount: z.number().int(),
+          invoice_payload: z.string(),
+          telegram_payment_charge_id: z.string(),
+        })
+        .optional(),
+    })
+    .optional(),
+  pre_checkout_query: z
+    .object({
+      id: z.string(),
+      from: sender,
+      currency: z.string(),
+      total_amount: z.number().int(),
+      invoice_payload: z.string(),
+    })
     .optional(),
   callback_query: z
     .object({
@@ -63,6 +92,21 @@ async function makeReply(
   callback?: string,
 ): Promise<BotReply> {
   const db = await database();
+  if (command === "/paysupport") {
+    return {
+      text: "For payment help, send /paysupport followed by a description of the issue and your Telegram payment receipt ID. Never send card details or passwords.",
+    };
+  }
+  if (
+    command === "/premium" ||
+    callback === "premium:buy" ||
+    (command === "/start" && text?.split(/\s+/)[1] === "premium")
+  ) {
+    await sendPremiumInvoice(user._id, user.bot!.chatId);
+    return {
+      text: "Use the invoice above to activate Premium for 30 days. If Premium is already active, the purchase adds 30 days to your current access.",
+    };
+  }
   if (command === "/pause") {
     await db.users.updateOne(
       { _id: user._id },
@@ -72,6 +116,12 @@ async function makeReply(
       text: "Daily conversations are off. You can message me anytime. Use /resume to turn them back on.",
     };
   }
+  if (!hasPremium(user) && trialEnded(user)) return premiumReply();
+  if (
+    command === "/topic" ||
+    (command === "/start" && user.settings && !user.bot?.draft)
+  )
+    await reserveTrialMessage(user._id, `telegram:${id}`);
   if (
     command === "/settings" ||
     (command === "/start" &&
@@ -116,7 +166,7 @@ async function makeReply(
     };
   } else if (command && !["/start", "/topic"].includes(command)) {
     return {
-      text: "/topic — new topic\n/settings — profile and conversation time\n/pause — turn off daily topics\n/resume — turn on daily topics\n/app — open the app\n\nOr just message me in English.",
+      text: "/topic — new topic\n/premium — buy 30 days of Premium\n/paysupport — payment help\n/settings — profile and conversation time\n/pause — turn off daily topics\n/resume — turn on daily topics\n/app — open the app\n\nOr just message me in English.",
     };
   } else if (!command) {
     if (!text)
@@ -148,13 +198,28 @@ async function makeReply(
   });
   return {
     text: completed
-      ? `All set! ${user.bot?.enabled ? `I’ll message you at ${user.bot.hour}:00 (${user.settings!.timezone}). Use /pause to turn it off.` : "Daily topics are off. Use /resume to turn them on."}\n\n${starter}`
+      ? `All set! ${!hasPremium(user) ? "Your trial lasts 3 days from registration and includes 10 messages per day. After that, Premium costs 250 Stars for 30 days.\n\n" : ""}${user.bot?.enabled ? `I’ll message you at ${user.bot.hour}:00 (${user.settings!.timezone}). Use /pause to turn it off.` : "Daily topics are off. Use /resume to turn them on."}\n\n${starter}`
       : starter,
   };
 }
 
 export async function telegramUpdate(body: unknown) {
   const update = updateSchema.parse(body);
+  if (update.pre_checkout_query) {
+    const query = update.pre_checkout_query;
+    const ok = validPayment(String(query.from.id), query);
+    await telegramCall("answerPreCheckoutQuery", {
+      pre_checkout_query_id: query.id,
+      ok,
+      ...(!ok
+        ? {
+            error_message:
+              "This invoice is invalid. Send /premium to get a new invoice.",
+          }
+        : {}),
+    });
+    return;
+  }
   const callback = update.callback_query;
   const target = callback?.message?.chat || update.message?.chat;
   const from = callback?.from || update.message?.from;
@@ -218,20 +283,27 @@ export async function telegramUpdate(body: unknown) {
     let payload = old?.payload;
     if (!payload) {
       try {
-        payload = old?.startConversation
-          ? { text: await conversationStarter(user, `telegram:${id}`) }
-          : await makeReply(
-              user,
-              id,
-              command,
-              text,
-              callback ? callback.data || "" : undefined,
-            );
+        payload = update.message?.successful_payment
+          ? await acceptPayment(uid, update.message.successful_payment)
+          : !hasPremium(user) && trialEnded(user) && old?.startConversation
+            ? premiumReply()
+            : old?.startConversation
+              ? { text: await conversationStarter(user, `telegram:${id}`) }
+              : await makeReply(
+                  user,
+                  id,
+                  command,
+                  text,
+                  callback ? callback.data || "" : undefined,
+                );
       } catch (error) {
         if (!(error instanceof HttpError)) throw error;
-        payload = {
-          text: `${error.message}\n\nUse /topic to try starting a new conversation.`,
-        };
+        payload =
+          error instanceof AccessError
+            ? premiumReply(error.limitReached)
+            : {
+                text: `${error.message}\n\nUse /topic to try starting a new conversation.`,
+              };
       }
       await db.updates.updateOne(
         { _id: id },
@@ -248,7 +320,7 @@ export async function telegramUpdate(body: unknown) {
       { _id: id },
       { $set: { status: "sent" }, $unset: { leaseUntil: "" } },
     );
-    if (callback?.message)
+    if (callback?.message && callback.data !== "premium:buy")
       await telegramCall("editMessageReplyMarkup", {
         chat_id: target.id,
         message_id: callback.message.message_id,

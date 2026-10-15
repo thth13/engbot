@@ -36,6 +36,22 @@ export async function database() {
     exercises: db.collection<Exercise>("exercises"),
     activity: db.collection<Activity>("activity"),
     limits: db.collection<{ _id: string; count: number }>("limits"),
+    trialUsage: db.collection<{ _id: string; requests: string[] }>(
+      "trialUsage",
+    ),
+    payments: db.collection<{
+      _id: string;
+      userId: string;
+      amount: number;
+      currency: string;
+      createdAt: Date;
+      premiumUntil: Date;
+    }>("payments"),
+    telegramInbox: db.collection<{
+      _id: string;
+      updateId: number;
+      body: unknown;
+    }>("telegramInbox"),
     notifications: db.collection<{ _id: string; createdAt: Date }>(
       "adminNotifications",
     ),

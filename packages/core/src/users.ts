@@ -1,5 +1,6 @@
 import { database } from "./db";
 import { HttpError } from "./errors";
+import { requireAccess } from "./billing";
 export async function ensureUser(id: string, name: string) {
   const { users } = await database();
   await users.updateOne(
@@ -20,6 +21,7 @@ export async function ensureUser(id: string, name: string) {
   return id;
 }
 export async function rateLimit(userId: string) {
+  await requireAccess(userId);
   const { limits } = await database();
   const key = `${userId}:${Math.floor(Date.now() / 86400000)}`;
   const item = await limits.findOneAndUpdate(

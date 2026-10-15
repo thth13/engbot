@@ -1,6 +1,8 @@
 import { setTimeout as delay } from "node:timers/promises";
 import { z, ZodError } from "zod";
 import { telegramUpdate } from "./telegram";
+import { database } from "@engbot/core/db";
+import { TelegramDeliveryError } from "./api";
 
 const updatesSchema = z.array(
   z.object({ update_id: z.number().int() }).passthrough(),
@@ -45,6 +47,48 @@ export async function pollTelegram(
   signal: AbortSignal,
   state: { ready: boolean },
 ) {
+  const workerController = new AbortController();
+  const worker = processInbox(
+    AbortSignal.any([signal, workerController.signal]),
+  );
+  try {
+    await pollUpdates(signal, state);
+  } finally {
+    workerController.abort();
+    await worker;
+  }
+}
+
+// Persist messages before acknowledgement so slow AI replies cannot delay checkout.
+async function processInbox(signal: AbortSignal) {
+  while (!signal.aborted) {
+    try {
+      const { telegramInbox } = await database();
+      const pending = await telegramInbox.findOne(
+        {},
+        { sort: { updateId: 1 } },
+      );
+      if (pending) {
+        try {
+          await telegramUpdate(pending.body);
+        } catch (error) {
+          if (!(error instanceof ZodError)) throw error;
+          console.error("Unsupported Telegram update skipped", {
+            updateId: pending.updateId,
+          });
+        }
+        await telegramInbox.deleteOne({ _id: pending._id });
+        continue;
+      }
+    } catch {
+      console.error("Telegram inbox processing failed; retrying");
+      await delay(5000, undefined, { signal }).catch(() => {});
+    }
+    await delay(250, undefined, { signal }).catch(() => {});
+  }
+}
+
+async function pollUpdates(signal: AbortSignal, state: { ready: boolean }) {
   let initialized = false;
   let offset: number | undefined;
   while (!signal.aborted) {
@@ -59,9 +103,13 @@ export async function pollTelegram(
           "getUpdates",
           {
             offset,
-            limit: 1,
+            limit: 100,
             timeout: 30,
-            allowed_updates: ["message", "callback_query"],
+            allowed_updates: [
+              "message",
+              "callback_query",
+              "pre_checkout_query",
+            ],
           },
           signal,
         ),
@@ -70,8 +118,24 @@ export async function pollTelegram(
       for (const update of updates) {
         if (signal.aborted) break;
         try {
-          // Finish the current reply during shutdown. Never acknowledge failed work.
-          await telegramUpdate(update);
+          if ("pre_checkout_query" in update) {
+            try {
+              await telegramUpdate(update);
+            } catch (error) {
+              // An expired checkout is permanently rejected by Telegram.
+              if (!(
+                error instanceof TelegramDeliveryError && error.code === 400
+              ))
+                throw error;
+            }
+          } else {
+            const { telegramInbox } = await database();
+            await telegramInbox.updateOne(
+              { _id: String(update.update_id) },
+              { $setOnInsert: { updateId: update.update_id, body: update } },
+              { upsert: true },
+            );
+          }
         } catch (error) {
           if (!(error instanceof ZodError)) throw error;
           console.error("Unsupported Telegram update skipped", {
