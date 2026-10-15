@@ -6,7 +6,7 @@ An expressive pink learning notebook with a calm, adult workspace. The learner s
 
 ## Audience and register
 
-Ukrainian-speaking adult students and professionals; Telegram on mobile and a desktop companion. Product UI is Ukrainian, conversation and learning targets are English. Explanations default to Ukrainian and follow an explicitly saved native-language preference. No Japan market scope.
+Ukrainian-speaking adult students and professionals; Telegram on mobile and a desktop companion. Product UI is English, conversation and learning targets are English. Explanations default to Ukrainian and follow an explicitly saved native-language preference. No Japan market scope.
 
 ## Visual direction
 
@@ -34,7 +34,7 @@ Body: Avenir Next → Segoe UI → Arial. Display: Trebuchet MS → Avenir Next.
 
 Fixed 242px desktop sidebar; max 1400px workspace, 42px page inset. Below 760px: document scrolling, 18px inset, five-item bottom navigation with safe-area support. Profile remains accessible in header; progress remains a desktop navigation item and is linked from the mobile dashboard. Main cards use 22px radius and 20–25px inner spacing.
 
-Public homepage: ordinary browser visits render a Ukrainian landing immediately, including when a session cookie exists. Telegram launch data selects the existing Mini App; server verification still owns authentication. The landing uses the same runtime tokens and local typefaces, a 1120px maximum width, and a sentence correction example clearly labeled as a demonstration. Below 760px, the offer, three benefits and Telegram CTA precede the example and supporting detail, with natural document scrolling and safe-area insets. The CTA links directly to the configured bot with `start=web`; no invented claims about pricing, learner counts or results.
+Public homepage: ordinary browser visits render an English landing immediately, including when a session cookie exists. Telegram launch data selects the existing Mini App; server verification still owns authentication. The landing uses the same runtime tokens and local typefaces, a 1120px maximum width, and a sentence correction example clearly labeled as a demonstration. Below 760px, the offer, three benefits and Telegram CTA precede the example and supporting detail, with natural document scrolling and safe-area insets. The CTA links directly to the configured bot with `start=web`; no invented claims about pricing, learner counts or results.
 
 ## Components and motion
 
@@ -52,4 +52,4 @@ Static audit artifact: `docs/premium-audit.json`. Runtime, responsive screenshot
 
 ## Telegram conversation interface
 
-Telegram owns the native message and inline-button appearance. Bot onboarding uses short Ukrainian questions, one persisted step at a time, native callback buttons and Back. Interests accept free text as well as topic presets. Settings share the core schema with the web profile. Ordinary chat replies and daily conversation starters have no website button; explicit app/section commands retain navigation. Conversation prompts use English at the learner's level and explanations use the saved native language.
+Telegram owns the native message and inline-button appearance. Bot onboarding uses short English questions, one persisted step at a time, native callback buttons and Back. Interests accept free text as well as topic presets. Settings share the core schema with the web profile. Ordinary chat replies and daily conversation starters have no website button; explicit app/section commands retain navigation. Conversation prompts use English at the learner's level and explanations use the saved native language.

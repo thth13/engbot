@@ -33,7 +33,7 @@ export function review(item: Review, correct: boolean): Review {
   };
 }
 export function requireSettings(user: User) {
-  if (!user.settings) throw new HttpError(409, "Спочатку заповніть профіль.");
+  if (!user.settings) throw new HttpError(409, "Complete your profile first.");
   return user.settings;
 }
 async function reward(
@@ -168,8 +168,8 @@ export async function makeExercise(
     throw new HttpError(
       404,
       sourceType === "mistake"
-        ? "Поки що немає помилок. Почніть із розмови."
-        : "Додайте слово з розмови.",
+        ? "No mistakes yet. Start with a conversation."
+        : "Add a word from a conversation.",
     );
   const pending = await db.exercises.findOne({
     userId: user._id,
@@ -202,7 +202,7 @@ export async function submitAnswer(user: User, id: string, answer: string) {
   const settings = requireSettings(user);
   const db = await database();
   const exercise = await db.exercises.findOne({ _id: id, userId: user._id });
-  if (!exercise) throw new HttpError(404, "Вправу не знайдено.");
+  if (!exercise) throw new HttpError(404, "Exercise not found.");
   if (exercise.result) return exercise.result;
   await rateLimit(user._id);
   const graded = await ai.gradeAnswer(exercise, answer, settings);

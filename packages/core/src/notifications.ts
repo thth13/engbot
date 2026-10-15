@@ -31,7 +31,7 @@ export async function notifyAdmins(notification: Notification) {
       notification.page ? `📄 Page: ${notification.page}` : undefined,
       `📍 Source: ${notification.source}`,
       notification.user
-        ? `👤 User: ${notification.user.name || "Без імені"}\n🆔 Telegram ID: ${notification.user._id}`
+        ? `👤 User: ${notification.user.name || "Unnamed user"}\n🆔 Telegram ID: ${notification.user._id}`
         : `👤 Visitor: ${notification.visitorId?.slice(0, 8) || "Unknown"}`,
       notification.ip ? `🌐 IP: ${notification.ip}` : undefined,
       `🕒 Time: ${new Date().toISOString()}`,

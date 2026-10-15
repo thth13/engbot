@@ -35,6 +35,26 @@ const routes: Record<string, string> = {
   "/progress": "/progress",
 };
 
+function startTyping(chatId: number) {
+  let stopped = false;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const refresh = async () => {
+    await telegramCall("sendChatAction", {
+      chat_id: chatId,
+      action: "typing",
+    }).catch(() => {});
+    if (!stopped) {
+      timer = setTimeout(() => void refresh(), 4000);
+      timer.unref();
+    }
+  };
+  void refresh();
+  return () => {
+    stopped = true;
+    clearTimeout(timer);
+  };
+}
+
 async function makeReply(
   user: User,
   id: string,
@@ -49,7 +69,7 @@ async function makeReply(
       { $set: { "bot.enabled": false } },
     );
     return {
-      text: "Щоденні розмови вимкнено. Можеш писати мені будь-коли. /resume — увімкнути знову.",
+      text: "Daily conversations are off. You can message me anytime. Use /resume to turn them back on.",
     };
   }
   if (
@@ -76,16 +96,16 @@ async function makeReply(
       { $set: { "bot.enabled": true, "bot.hour": user.bot?.hour ?? 19 } },
     );
     return {
-      text: `Починатиму розмову щодня о ${user.bot?.hour ?? 19}:00 (${user.settings.timezone}). /settings — змінити час, /pause — вимкнути.`,
+      text: `I’ll start a conversation every day at ${user.bot?.hour ?? 19}:00 (${user.settings.timezone}). Use /settings to change the time or /pause to turn it off.`,
     };
   } else if (command && routes[command]) {
     return {
-      text: "Цей розділ доступний у застосунку.",
+      text: "This section is available in the app.",
       reply_markup: {
         inline_keyboard: [
           [
             {
-              text: "Відкрити розділ",
+              text: "Open section",
               web_app: {
                 url: new URL(routes[command], process.env.APP_URL).href,
               },
@@ -96,16 +116,16 @@ async function makeReply(
     };
   } else if (command && !["/start", "/topic"].includes(command)) {
     return {
-      text: "/topic — нова тема\n/settings — профіль і час розмов\n/pause — вимкнути щоденні теми\n/resume — увімкнути\n/app — відкрити застосунок\n\nАбо просто напиши мені англійською.",
+      text: "/topic — new topic\n/settings — profile and conversation time\n/pause — turn off daily topics\n/resume — turn on daily topics\n/app — open the app\n\nOr just message me in English.",
     };
   } else if (!command) {
     if (!text)
       return {
-        text: "Поки що я розумію лише текст. Напиши англійською або надішли /topic — я почну розмову.",
+        text: "I can only read text for now. Write in English or send /topic and I’ll start a conversation.",
       };
     if (text.length > 3000)
       return {
-        text: "Розділи повідомлення на частини до 3000 символів — так я зможу відповісти на кожну.",
+        text: "Split your message into parts of up to 3,000 characters so I can reply to each one.",
       };
     const result = await analyze(user, text, `telegram:${id}`);
     return {
@@ -116,7 +136,7 @@ async function makeReply(
           .map((m) => `\n\n${m.wrong} → ${m.correct}\n${m.explanation}`)
           .join("") +
         (result.naturalVersion && result.naturalVersion !== result.corrected
-          ? `\n\nПриродніше: ${result.naturalVersion}`
+          ? `\n\nMore natural: ${result.naturalVersion}`
           : "")
       ).slice(0, 4000),
     };
@@ -128,7 +148,7 @@ async function makeReply(
   });
   return {
     text: completed
-      ? `Готово! ${user.bot?.enabled ? `Писатиму о ${user.bot.hour}:00 (${user.settings!.timezone}). /pause — вимкнути.` : "Щоденні теми вимкнено. /resume — увімкнути."}\n\n${starter}`
+      ? `All set! ${user.bot?.enabled ? `I’ll message you at ${user.bot.hour}:00 (${user.settings!.timezone}). Use /pause to turn it off.` : "Daily topics are off. Use /resume to turn them on."}\n\n${starter}`
       : starter,
   };
 }
@@ -154,7 +174,7 @@ export async function telegramUpdate(body: unknown) {
       await db.updates.insertOne({ _id: id, status: "processing", leaseUntil });
     } catch (error) {
       if ((error as { code?: number }).code === 11000)
-        throw new HttpError(503, "Повідомлення ще обробляється.");
+        throw new HttpError(503, "Your message is still being processed.");
       throw error;
     }
   } else {
@@ -170,8 +190,9 @@ export async function telegramUpdate(body: unknown) {
       { $set: { status: "processing", leaseUntil } },
     );
     if (!claim.modifiedCount)
-      throw new HttpError(503, "Повідомлення ще обробляється.");
+      throw new HttpError(503, "Your message is still being processed.");
   }
+  const stopTyping = startTyping(target.id);
   try {
     const uid = await ensureUser(String(from.id), from.first_name);
     await db.users.updateOne(
@@ -188,11 +209,11 @@ export async function telegramUpdate(body: unknown) {
         id: `telegram:${id}:message`,
         event:
           command === "/start"
-            ? "🤖 Запустили бота (/start)"
-            : "💬 Повідомлення в бот",
+            ? "🤖 Started the bot (/start)"
+            : "💬 Message sent to the bot",
         source: "Telegram Bot",
         user,
-        details: `✉️ Message: ${text || "[Нетекстове повідомлення]"}`,
+        details: `✉️ Message: ${text || "[Non-text message]"}`,
       });
     let payload = old?.payload;
     if (!payload) {
@@ -209,7 +230,7 @@ export async function telegramUpdate(body: unknown) {
       } catch (error) {
         if (!(error instanceof HttpError)) throw error;
         payload = {
-          text: `${error.message}\n\n/topic — спробувати почати нову розмову.`,
+          text: `${error.message}\n\nUse /topic to try starting a new conversation.`,
         };
       }
       await db.updates.updateOne(
@@ -217,6 +238,7 @@ export async function telegramUpdate(body: unknown) {
         { $set: { status: "ready", payload } },
       );
     }
+    stopTyping();
     await telegramCall("sendMessage", { chat_id: target.id, ...payload });
     await db.starters.updateOne(
       { _id: `telegram:${id}` },
@@ -250,6 +272,8 @@ export async function telegramUpdate(body: unknown) {
     );
     throw error instanceof HttpError
       ? error
-      : new HttpError(502, "Не вдалося обробити повідомлення Telegram.");
+      : new HttpError(502, "Could not process the Telegram message.");
+  } finally {
+    stopTyping();
   }
 }

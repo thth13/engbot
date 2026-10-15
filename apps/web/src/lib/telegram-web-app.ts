@@ -25,7 +25,7 @@ export function loadTelegramWebApp(): Promise<TelegramWebApp> {
       script.remove();
       reject(
         new Error(
-          "Не вдалося підключитися до Telegram. Перевірте інтернет і повторіть вхід.",
+          "Could not connect to Telegram. Check your internet connection and try signing in again.",
         ),
       );
     };

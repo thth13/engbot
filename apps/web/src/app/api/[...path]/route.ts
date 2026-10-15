@@ -33,16 +33,16 @@ async function handle(
         return NextResponse.json(await snapshot(await currentUser()), {
           headers: { "Cache-Control": "no-store" },
         });
-      throw new HttpError(404, "Сторінку не знайдено.");
+      throw new HttpError(404, "Page not found.");
     }
     if (Number(request.headers.get("content-length") || 0) > 20000)
-      throw new HttpError(413, "Повідомлення задовге.");
+      throw new HttpError(413, "Message is too long.");
     const origin = request.headers.get("origin");
     const expected = process.env.APP_URL
       ? new URL(process.env.APP_URL).origin
       : request.nextUrl.origin;
     if (!origin || origin !== expected)
-      throw new HttpError(403, "Неприпустиме джерело запиту.");
+      throw new HttpError(403, "Request origin is not allowed.");
     const body = await request.json();
     if (path === "events") {
       const event = z
@@ -60,7 +60,7 @@ async function handle(
         })
         .parse(body);
       if (event.event !== "profile_visit" && event.path === "/profile")
-        throw new HttpError(400, "Некоректна сторінка події.");
+        throw new HttpError(400, "Invalid event page.");
       if (
         !process.env.ADMIN_NOTIFICATION_BOT_TOKEN ||
         !process.env.ADMIN_TELEGRAM_IDS
@@ -93,15 +93,15 @@ async function handle(
         { upsert: true, returnDocument: "after" },
       );
       if ((limit?.count || 0) > 30)
-        throw new HttpError(429, "Забагато подій. Спробуйте пізніше.");
+        throw new HttpError(429, "Too many events. Please try again later.");
       const events = {
-        landing_visit: "🏠 Відкрили головну сторінку — лендинг",
-        landing_bottom: "📜 Доскролили до низу сторінки",
-        telegram_click: "👆 Натиснули «Почати в Telegram»",
+        landing_visit: "🏠 Opened the landing page",
+        landing_bottom: "📜 Scrolled to the bottom of the page",
+        telegram_click: "👆 Clicked “Start in Telegram”",
         profile_visit:
           event.path === "/profile"
-            ? "👤 Відкрили профіль користувача"
-            : "🎓 Відкрили головну сторінку — кабінет користувача",
+            ? "👤 Opened the user profile"
+            : "🎓 Opened the dashboard",
       };
       after(() =>
         notifyAdmins({
@@ -171,7 +171,8 @@ async function handle(
         userId: user._id,
       });
       const word = message?.analysis.words[data.index];
-      if (!word) throw new HttpError(404, "Слово не знайдено в розмові.");
+      if (!word)
+        throw new HttpError(404, "Word not found in the conversation.");
       await db.words.updateOne(
         { _id: identity(user._id, word.word) },
         {
@@ -186,12 +187,12 @@ async function handle(
       );
       return NextResponse.json({ ok: true });
     }
-    throw new HttpError(404, "Дію не знайдено.");
+    throw new HttpError(404, "Action not found.");
   } catch (error) {
     if (error instanceof z.ZodError)
       return NextResponse.json(
         {
-          error: "Перевірте заповнені поля.",
+          error: "Check the form fields.",
           issues: error.issues.map((i) => ({
             field: i.path.join("."),
             message: i.message,
@@ -200,10 +201,7 @@ async function handle(
         { status: 400 },
       );
     if (error instanceof SyntaxError)
-      return NextResponse.json(
-        { error: "Некоректний запит." },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Invalid request." }, { status: 400 });
     if (error instanceof HttpError)
       return NextResponse.json(
         { error: error.message },
@@ -214,7 +212,7 @@ async function handle(
       error instanceof Error ? error.name : "UnknownError",
     );
     return NextResponse.json(
-      { error: "Не вдалося виконати запит. Спробуйте ще раз." },
+      { error: "Could not complete the request. Please try again." },
       { status: 500 },
     );
   }
