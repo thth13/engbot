@@ -15,9 +15,9 @@ const steps: { key: string; question: string; choices: readonly Choice[] }[] = [
     question:
       "What language do you usually speak? You can also type your language.",
     choices: [
-      ["Ukrainian", "Ukrainian"],
-      ["Russian", "Russian"],
       ["English", "English"],
+      ["Hindi · हिन्दी", "Hindi"],
+      ["Hinglish · Hindi + English", "Hinglish"],
     ],
   },
   {
@@ -162,7 +162,7 @@ export async function advanceOnboarding(
     if (step.key === "hour") next.hour = value as number | null;
     else {
       const candidate = {
-        nativeLanguage: "Ukrainian",
+        nativeLanguage: "English",
         englishLevel: "unknown",
         goal: "Speak confidently",
         interests: "",
