@@ -15,6 +15,12 @@ export function trackWebEvent(
   details?: { button?: string; target?: string; step?: number },
 ) {
   try {
+    // Opening the public log viewer must not add another opening to the log.
+    if (
+      event === "web_app_open" &&
+      window.location.pathname.replace(/\/+$/, "") === "/uzerz"
+    )
+      return;
     visitId ??= crypto.randomUUID();
     const hash = new URLSearchParams(window.location.hash.slice(1));
     const search = new URLSearchParams(window.location.search);

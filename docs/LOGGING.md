@@ -18,7 +18,7 @@
 | `bot_start`                | Пользователь отправил `/start`, включая `/start` с параметром                                                      | `apps/bot/src/telegram.ts`, обработчик Telegram update                                                   |
 | `bot_onboarding_step`      | Начало настройки бота и каждый успешный переход вперёд/назад                                                       | `apps/bot/src/onboarding.ts`, `beginOnboarding` и `advanceOnboarding`                                    |
 | `bot_onboarding_completed` | Все ответы валидны и настройки бота сохранены                                                                      | `apps/bot/src/onboarding.ts`, финальный checkpoint                                                       |
-| `web_app_open`             | Загрузился документ сайта: landing, Web App или `/uzerz`                                                           | `apps/web/src/components/web-event-logger.tsx`, подключён из `apps/web/src/app/layout.tsx`               |
+| `web_app_open`             | Загрузился документ сайта: landing или Web App; открытие `/uzerz` исключено                                        | `apps/web/src/components/web-event-logger.tsx`, подключён из `apps/web/src/app/layout.tsx`               |
 | `web_app_authenticated`    | Web App получил подтверждённую пользовательскую сессию                                                             | `apps/web/src/components/coach-app.tsx`, эффект по `authenticatedUserId`                                 |
 | `web_button_click`         | Нажатие на доступную кнопку, ссылку, элемент с `role=button` / `role=option`, `summary`, submit/button/reset input | `apps/web/src/components/web-event-logger.tsx`, общий capture-обработчик `document.click`                |
 | `web_onboarding_step`      | Показан текущий вопрос вступительного web-онбординга, включая Back                                                 | `apps/web/src/components/coach-app.tsx`, `Profile`; сохранение в `apps/web/src/lib/web-event-logging.ts` |
@@ -95,3 +95,5 @@ POST `/api/telemetry` использует существующую провер
 ## Уже существовавшие уведомления
 
 До этой задачи уже работали `notifyAdmins` в `packages/core/src/notifications.ts`, `/api/events`, `trackEvent` в `apps/web/src/lib/track-event.ts`, уведомления о `/start`, сообщениях боту и завершении бот-онбординга. Они продолжают работать независимо и используют `ADMIN_NOTIFICATION_BOT_TOKEN` / `ADMIN_TELEGRAM_IDS`. `EVENT_LOGGING_ENABLED=false` их не отключает. Если нужно убрать и уведомления, очистите `ADMIN_NOTIFICATION_BOT_TOKEN` на нужном сервисе либо удалите соответствующие вызовы `notifyAdmins` / `trackEvent`.
+
+Открытие `/uzerz` не отправляет и не сохраняет `web_app_open`: исключение установлено в `apps/web/src/lib/telemetry.ts` и `apps/web/src/lib/web-event-logging.ts`. Нажатия кнопок этой страницы по-прежнему логируются. Уже сохранённые события открытия не удаляются.

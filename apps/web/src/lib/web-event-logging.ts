@@ -50,6 +50,8 @@ const webSteps = [
 export async function saveWebEvent(body: unknown, request: Request) {
   if (!eventLoggingEnabled()) return;
   const input = schema.parse(body);
+  // Also ignore opening events from older clients viewing the log page.
+  if (input.event === "web_app_open" && input.path === "/uzerz") return;
   let user: User | undefined;
   try {
     user = await currentUser();
