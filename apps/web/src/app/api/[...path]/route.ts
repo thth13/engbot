@@ -15,6 +15,7 @@ import {
 } from "@engbot/core/learning";
 import { settingsSchema } from "@engbot/core/schema";
 import { HttpError } from "@engbot/core/errors";
+import { readAdminData } from "@/lib/uzerz";
 import { notifyAdmins } from "@engbot/core/notifications";
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -123,6 +124,10 @@ async function handle(
       );
       return NextResponse.json({ ok: true });
     }
+    if (path === "uzerz")
+      return NextResponse.json(await readAdminData(body), {
+        headers: { "Cache-Control": "private, no-store" },
+      });
     const user = await currentUser();
     const db = await database();
     if (path === "profile") {

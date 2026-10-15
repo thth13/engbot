@@ -32,7 +32,7 @@ import type { AppData, Settings } from "@engbot/core/schema";
 import { settingsSchema } from "@engbot/core/schema";
 import { loadTelegramWebApp } from "@/lib/telegram-web-app";
 import { trackEvent } from "@/lib/track-event";
-import { Button, Empty, Meter } from "./ui";
+import { Button, Empty, Meter, Pagination } from "./ui";
 import { LanguageSelect, languageLabel } from "./language-select";
 const navigation = [
   { path: "/", key: "home", label: "Home", icon: House },
@@ -1379,39 +1379,6 @@ function Vocabulary({ data }: { data: AppData }) {
         your entire vocabulary.
       </p>
     </>
-  );
-}
-function Pagination({
-  page,
-  count,
-  setPage,
-}: {
-  page: number;
-  count: number;
-  setPage: (v: number) => void;
-}) {
-  return (
-    <div className="pagination">
-      <small>
-        {page * 10 + 1}–{Math.min((page + 1) * 10, count)} of {count}
-      </small>
-      <Button
-        className="secondary small"
-        disabled={page === 0}
-        onClick={() => setPage(page - 1)}
-        aria-label="Previous page"
-      >
-        <ChevronLeft size={16} />
-      </Button>
-      <Button
-        className="secondary small"
-        disabled={(page + 1) * 10 >= count}
-        onClick={() => setPage(page + 1)}
-        aria-label="Next page"
-      >
-        <ChevronRight size={16} />
-      </Button>
-    </div>
   );
 }
 interface Task {

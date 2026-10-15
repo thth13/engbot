@@ -53,3 +53,7 @@ Static audit artifact: `docs/premium-audit.json`. Runtime, responsive screenshot
 ## Telegram conversation interface
 
 Telegram owns the native message and inline-button appearance. Bot onboarding uses short English questions, one persisted step at a time, native callback buttons and Back. Interests accept free text as well as topic presets. Settings share the core schema with the web profile. Ordinary chat replies and daily conversation starters have no website button; explicit app/section commands retain navigation. Conversation prompts use English at the learner's level and explanations use the saved native language.
+
+## Administration
+
+`/uzerz` is a public, read-only data workspace with a standalone main-content layout; Telegram authentication is not required. It reuses the pink table-header tint, panel, filter buttons, native OS-owned selects and shared pagination. Wide semantic tables own horizontal overflow and a bounded vertical scroller; the page keeps document scrolling. Full long values expand in place. Registration and other timestamps include the year and time and are explicitly labeled UTC.

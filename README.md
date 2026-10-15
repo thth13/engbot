@@ -87,3 +87,7 @@ P1: голос, ежедневные задания/напоминания, сц
 The bot process runs the daily scheduler alongside polling; it must stay online. Topics are sent during the selected local hour only, after at least an hour without user interaction. They use interests, level and recent conversation history. No extra cron service is needed. MongoDB stores drafts, scheduling state and separate conversation starters; these starters do not affect learning statistics. Daily delivery prioritizes avoiding duplicate nudges: an ambiguous send timeout skips that date instead of retrying blindly.
 
 After deployment, `npm run telegram:setup` refreshes the Telegram command menu and `npm run db:indexes` creates the added history/scheduler indexes.
+
+### Страница администрирования `/uzerz`
+
+Страница `/uzerz` доступна всем без авторизации и настройки Telegram ID. Она показывает пользователей с датами регистрации и настройками, сообщения, ошибки, словарь, упражнения, активность, платежи и сообщения бота. Есть поиск, порядок по дате и серверная пагинация; служебные коллекции представлены счётчиками. Изменение и удаление записей не предусмотрены.
