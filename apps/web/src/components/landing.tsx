@@ -1,16 +1,154 @@
 "use client";
 
 import {
-  ArrowDown,
   ArrowRight,
+  BatteryFull,
   BookOpen,
   Check,
+  CheckCheck,
+  ChevronLeft,
   MessageCircle,
-  Send,
+  Mic,
+  MoreVertical,
+  Paperclip,
+  Signal,
+  Smile,
   Sparkles,
+  Wifi,
 } from "lucide-react";
 import Link from "next/link";
 import { trackEvent } from "@/lib/track-event";
+
+function TelegramLogo({ size = 24 }: { size?: number }) {
+  return (
+    <svg
+      className="landing-telegram-logo"
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="12" fill="#229ED9" />
+      <path
+        d="m5.1 11.5 13-5c.6-.2 1 .1.8.9l-2.2 10.3c-.2.7-.6.9-1.2.5l-3.4-2.5-1.6 1.6c-.2.2-.3.3-.6.3l.2-3.5 6.4-5.8c.3-.3-.1-.4-.4-.2l-7.9 5-3.4-1.1c-.7-.2-.7-.6.3-.9Z"
+        fill="#fff"
+      />
+    </svg>
+  );
+}
+
+function BotAvatar({ className = "" }: { className?: string }) {
+  return (
+    <svg
+      className={`landing-bot-avatar ${className}`}
+      viewBox="0 0 120 120"
+      aria-hidden="true"
+    >
+      <circle cx="60" cy="60" r="60" fill="var(--primary)" />
+      <path
+        d="M60 22C36 22 18 38 18 59c0 12 5 22 14 29l-6 14 19-8c5 2 10 2 15 2 24 0 43-16 43-37S84 22 60 22Z"
+        fill="var(--ink)"
+      />
+      <text
+        x="34"
+        y="78"
+        fill="var(--primary)"
+        fontFamily="Georgia, serif"
+        fontSize="76"
+        fontWeight="700"
+        letterSpacing="-5"
+      >
+        e.
+      </text>
+    </svg>
+  );
+}
+
+function TelegramPreview() {
+  return (
+    <figure className="landing-phone-preview">
+      <div className="landing-phone">
+        <div className="landing-phone-screen">
+          <div className="landing-phone-status" aria-hidden="true">
+            <span>9:41</span>
+            <span className="landing-phone-island" />
+            <span className="landing-phone-status-icons">
+              <Signal size={14} />
+              <Wifi size={14} />
+              <BatteryFull size={19} />
+            </span>
+          </div>
+          <div className="landing-telegram-header">
+            <ChevronLeft
+              className="landing-telegram-icon"
+              size={24}
+              aria-hidden="true"
+            />
+            <BotAvatar />
+            <div className="landing-telegram-identity">
+              <strong>English Mova Bot</strong>
+              <span>bot</span>
+            </div>
+            <MoreVertical
+              className="landing-telegram-icon"
+              size={20}
+              aria-hidden="true"
+            />
+          </div>
+          <div
+            className="landing-telegram-chat"
+            role="group"
+            aria-label="Example conversation with English Mova Bot"
+          >
+            <span className="landing-chat-day">Today</span>
+            <div className="landing-chat-message landing-chat-incoming">
+              <p>Hey! Tell me about your day. What did you do? 💬</p>
+              <span className="landing-chat-time">9:41</span>
+            </div>
+            <div className="landing-chat-message landing-chat-outgoing">
+              <p>Yesterday I go to the shop and buy a book.</p>
+              <span className="landing-chat-time">
+                9:41 <CheckCheck size={14} aria-hidden="true" />
+              </span>
+            </div>
+            <div className="landing-chat-message landing-chat-incoming">
+              <p>Nice! Here’s a small correction ✨</p>
+              <p className="landing-chat-correction">
+                Yesterday I <strong>went</strong> to the shop and{" "}
+                <strong>bought</strong> a book.
+              </p>
+              <p className="landing-chat-explanation" lang="uk">
+                Коли говоримо про минуле, використовуємо Past Simple: go → went,
+                buy → bought.
+              </p>
+              <p>What kind of book did you buy?</p>
+              <span className="landing-chat-time">9:41</span>
+            </div>
+            <div className="landing-chat-message landing-chat-outgoing">
+              <p>A detective story! I love mysteries 🔍</p>
+              <span className="landing-chat-time">
+                9:42 <CheckCheck size={14} aria-hidden="true" />
+              </span>
+            </div>
+          </div>
+          <div className="landing-telegram-composer" aria-hidden="true">
+            <Paperclip size={21} />
+            <span>Message</span>
+            <Smile size={21} />
+            <Mic size={21} />
+          </div>
+          <div className="landing-phone-home" aria-hidden="true">
+            <span />
+          </div>
+        </div>
+      </div>
+      <figcaption className="landing-example-caption">
+        A little practice. A real conversation.
+        <span>Example chat · explanations in your language</span>
+      </figcaption>
+    </figure>
+  );
+}
 
 function BotLink({ botUrl }: { botUrl: string | null }) {
   return botUrl ? (
@@ -19,8 +157,7 @@ function BotLink({ botUrl }: { botUrl: string | null }) {
       href={botUrl}
       onClick={() => trackEvent("telegram_click", crypto.randomUUID())}
     >
-      <Send size={19} aria-hidden="true" />
-      Start in Telegram
+      Open bot in Telegram
       <ArrowRight size={19} aria-hidden="true" />
     </a>
   ) : (
@@ -34,11 +171,11 @@ export function Landing({ botUrl }: { botUrl: string | null }) {
   return (
     <div className="landing">
       <header className="landing-header">
-        <Link className="brand" href="/" aria-label="English Coach — home">
-          <span className="brand-mark">e.</span> English Coach
+        <Link className="brand" href="/" aria-label="English Mova Bot — home">
+          <BotAvatar className="landing-brand-avatar" /> English Mova Bot
         </Link>
         <span className="landing-header-note">
-          Your English coach in Telegram
+          Your English-learning Telegram bot
         </span>
       </header>
 
@@ -46,17 +183,17 @@ export function Landing({ botUrl }: { botUrl: string | null }) {
         <section className="landing-hero" aria-labelledby="landing-title">
           <div className="landing-intro">
             <span className="landing-eyebrow">
-              <MessageCircle size={15} aria-hidden="true" /> English starts with
-              a conversation
+              <TelegramLogo size={28} /> Your English coach is a Telegram bot
             </span>
             <h1 id="landing-title">
-              Your English.
+              Better English.
               <br />
-              <span>Better with every message.</span>
+              <span>With a Telegram bot.</span>
             </h1>
             <p className="landing-lead">
-              Chat with the bot in English, understand your mistakes, and put
-              what you learn into practice. Right in Telegram.
+              Meet English Mova Bot, your personal English coach in Telegram.
+              Message the bot, get clear corrections, and practice what you
+              learn — right in your Telegram chat.
             </p>
             <ul className="landing-benefits" aria-label="Key benefits">
               <li>
@@ -74,44 +211,11 @@ export function Landing({ botUrl }: { botUrl: string | null }) {
             </ul>
             <BotLink botUrl={botUrl} />
             <p className="landing-cta-note">
-              Open the bot → tap “Start” → begin a conversation
+              Open Telegram → tap “Start” in the bot → chat in English
             </p>
           </div>
 
-          <aside
-            className="landing-example"
-            aria-label="Example of an English sentence correction"
-          >
-            <div className="landing-example-heading">
-              <Sparkles size={18} aria-hidden="true" />
-              <span>One mistake. A new insight.</span>
-            </div>
-            <p className="landing-example-label">You write</p>
-            <p className="landing-sentence" lang="en">
-              Yesterday I <del>go</del> to the shop.
-            </p>
-            <ArrowDown
-              className="landing-example-arrow"
-              size={20}
-              aria-hidden="true"
-            />
-            <p className="landing-example-label">Now it makes sense</p>
-            <p className="landing-sentence landing-corrected" lang="en">
-              Yesterday I <strong>went</strong> to the shop.
-            </p>
-            <p className="landing-explanation">
-              <span lang="en">Yesterday</span> refers to the past, so we use{" "}
-              <strong lang="en">went</strong> instead of{" "}
-              <span lang="en">go</span>.
-            </p>
-            <div className="landing-example-footer">
-              <BookOpen size={16} aria-hidden="true" /> Next: practice based on
-              your mistakes
-            </div>
-            <span className="landing-example-caption">
-              Learning example, not a user’s history
-            </span>
-          </aside>
+          <TelegramPreview />
         </section>
 
         <section
@@ -168,7 +272,7 @@ export function Landing({ botUrl }: { botUrl: string | null }) {
         </section>
       </main>
       <footer className="landing-footer">
-        <span>English Coach</span>
+        <span>English Mova Bot</span>
         <span>Conversation → your mistakes → personal practice</span>
       </footer>
     </div>

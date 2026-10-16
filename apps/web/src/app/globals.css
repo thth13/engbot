@@ -1847,6 +1847,10 @@ input[type="radio"] {
   font-weight: 650;
   margin-bottom: 18px;
 }
+.landing-telegram-logo {
+  display: block;
+  flex-shrink: 0;
+}
 .landing h1 {
   font-size: clamp(32px, 4.2vw, 52px);
   line-height: 1.1;
@@ -1896,70 +1900,187 @@ input[type="radio"] {
   border-radius: 12px;
   color: var(--muted);
 }
-.landing-example {
+.landing-bot-avatar {
+  display: block;
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+}
+.landing-brand-avatar {
+  width: 38px;
+  height: 38px;
+}
+.landing-phone-preview {
   min-width: 0;
-  padding: 28px;
-  border: 1px solid var(--line);
-  border-top: 5px solid var(--primary);
-  border-radius: var(--radius);
+  margin: 0;
+  display: grid;
+  justify-items: center;
+  gap: 22px;
+}
+.landing-phone {
+  width: min(100%, 348px);
+  padding: 8px;
+  border: 2px solid var(--inverse-line);
+  border-radius: 46px;
+  background: var(--ink);
+  box-shadow: 0 24px 48px -20px color-mix(in srgb, var(--ink) 28%, transparent),
+    0 0 0 1px var(--field-line);
+}
+.landing-phone-screen {
+  overflow: hidden;
+  border-radius: 36px;
   background: var(--surface);
 }
-.landing-example-heading {
+.landing-phone-status {
+  position: relative;
+  height: 42px;
+  padding: 12px 21px 0;
   display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  font-size: 11px;
+  font-weight: 750;
+  line-height: 18px;
+}
+.landing-phone-island {
+  position: absolute;
+  top: 9px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 88px;
+  height: 24px;
+  background: var(--ink);
+  border-radius: 20px;
+}
+.landing-phone-status-icons {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.landing-telegram-header {
+  display: flex;
+  align-items: center;
   gap: 9px;
-  align-items: center;
-  font-weight: 650;
-  margin-bottom: 28px;
+  padding: 10px 12px 12px 8px;
+  border-bottom: 1px solid var(--line);
 }
-.landing-example-heading svg {
+.landing-telegram-icon {
   color: var(--primary-text);
+  flex-shrink: 0;
 }
-.landing-example-label {
-  color: var(--muted);
-  font-size: 12px;
-  margin-bottom: 6px;
+.landing-telegram-identity {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 2px;
 }
-.landing-sentence {
-  font-family: Georgia, serif;
-  font-size: clamp(22px, 2.4vw, 28px);
-  line-height: 1.45;
-}
-.landing-sentence del {
-  color: var(--red);
-  text-decoration-thickness: 2px;
-}
-.landing-example-arrow {
-  color: var(--muted);
-  margin: 16px 0;
-}
-.landing-corrected strong {
-  color: var(--green);
-  background: var(--green-tint);
-  padding: 0 4px;
-  border-radius: 4px;
-}
-.landing-explanation {
-  margin-top: 18px;
-  color: var(--muted);
-  line-height: 1.6;
+.landing-telegram-identity strong {
   font-size: 13px;
+  line-height: 1.3;
 }
-.landing-example-footer {
+.landing-telegram-identity > span {
+  font-size: 11px;
+  color: var(--muted);
+}
+.landing-telegram-chat {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 24px;
-  padding-top: 18px;
-  border-top: 1px solid var(--line);
-  font-size: 12px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px 12px 20px;
+  background-color: var(--primary-tint);
+  background-image: radial-gradient(circle, var(--line) 1px, transparent 1px);
+  background-size: 18px 18px;
+}
+.landing-chat-day {
+  align-self: center;
+  padding: 4px 12px;
+  border-radius: 20px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 10px;
   font-weight: 650;
 }
-.landing-example-caption {
-  display: block;
+.landing-chat-message {
+  max-width: 91%;
+  padding: 10px 12px 6px;
+  border: 1px solid var(--line);
+  border-radius: 15px 15px 15px 4px;
+  background: var(--surface);
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.landing-chat-message p + p {
   margin-top: 10px;
+}
+.landing-chat-outgoing {
+  align-self: flex-end;
+  border-color: transparent;
+  border-radius: 15px 15px 4px 15px;
+  background: var(--primary);
+  color: var(--on-primary);
+}
+.landing-chat-time {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 3px;
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1.4;
+}
+.landing-chat-outgoing .landing-chat-time {
+  color: var(--on-primary);
+}
+.landing-chat-correction {
+  padding-left: 9px;
+  border-left: 3px solid var(--green);
+}
+.landing-chat-correction strong {
+  color: var(--green);
+}
+.landing-chat-explanation {
   color: var(--muted);
   font-size: 11px;
-  line-height: 1.5;
+}
+.landing-telegram-composer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+}
+.landing-telegram-composer span {
+  flex: 1;
+  font-size: 12px;
+}
+.landing-phone-home {
+  display: flex;
+  justify-content: center;
+  padding: 5px 0 9px;
+}
+.landing-phone-home span {
+  width: 100px;
+  height: 4px;
+  border-radius: 4px;
+  background: var(--ink);
+}
+.landing-example-caption {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.6;
+  text-align: center;
+}
+.landing-example-caption span {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 400;
 }
 .landing-details {
   border-top: 1px solid var(--line);
@@ -2052,12 +2173,6 @@ input[type="radio"] {
   .landing-cta-note {
     text-align: center;
     font-size: 11px;
-  }
-  .landing-example {
-    padding: 20px;
-  }
-  .landing-example-heading {
-    margin-bottom: 18px;
   }
   .landing-details {
     padding: 30px 0;
