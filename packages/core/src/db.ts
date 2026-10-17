@@ -85,6 +85,7 @@ export async function database() {
       reply?: string;
       transcription?: string;
       startConversation?: boolean;
+      introSent?: boolean;
       payload?: import("./schema").BotReply;
       leaseUntil?: Date;
     }>("telegramUpdates"),

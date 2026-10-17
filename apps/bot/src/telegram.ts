@@ -98,6 +98,33 @@ function startTyping(chatId: number) {
   };
 }
 
+async function onboardingCompleteReply(user: User, id: string): Promise<BotReply> {
+  const db = await database();
+  const text =
+    "Hey! 👋 I'm Alex, your English practice buddy.\n\n" +
+    "We can chat about your day, your interests, or whatever’s on your mind. No need for perfect English — a few simple words are a great start. I’ll help you along the way. 😊\n\n" +
+    "A few tips to get started:\n" +
+    "• Write in English or send a voice message to practice speaking.\n" +
+    "• Try adding a detail or asking me a question back — just like a real conversation.\n" +
+    "• Need help? Try ‘Use simpler English’ or ‘What does this word mean?’\n" +
+    "• When I reply with a voice message, tap 📄 See Text to read along.\n" +
+    "• Not sure what to talk about? Send /topic for a new idea.\n\n" +
+    "Let’s start with something easy: how was your day today? ☀️";
+  await db.starters.updateOne(
+    { _id: `telegram:${id}` },
+    { $setOnInsert: { userId: user._id, text, createdAt: new Date() } },
+    { upsert: true },
+  );
+  return {
+    introText:
+      `All set! ✅${!hasPremium(user) ? "\n\nYour trial lasts 3 days from registration and includes 10 messages per day. After that, Premium costs 250 Stars for 30 days." : ""}\n\n` +
+      (user.bot?.enabled
+        ? `I’ll message you every day at ${user.bot.hour}:00 (${user.settings!.timezone}). Use /pause to turn off daily messages.`
+        : "Daily messages are off. Use /resume to turn them on."),
+    text: (await db.starters.findOne({ _id: `telegram:${id}` }))!.text,
+  };
+}
+
 async function makeReply(
   user: User,
   id: string,
@@ -220,16 +247,14 @@ async function makeReply(
       ).slice(0, 4000),
     };
   }
-  const starter = await conversationStarter(user, `telegram:${id}`);
   const completed = await db.updates.findOne({
     _id: id,
     startConversation: true,
   });
+  if (completed) return onboardingCompleteReply(user, id);
   return {
     voice: true,
-    text: completed
-      ? `All set! ${!hasPremium(user) ? "Your trial lasts 3 days from registration and includes 10 messages per day. After that, Premium costs 250 Stars for 30 days.\n\n" : ""}${user.bot?.enabled ? `I’ll message you at ${user.bot.hour}:00 (${user.settings!.timezone}). Use /pause to turn it off.` : "Daily topics are off. Use /resume to turn them on."}\n\n${starter}`
-      : starter,
+    text: await conversationStarter(user, `telegram:${id}`),
   };
 }
 
@@ -339,10 +364,7 @@ export async function telegramUpdate(body: unknown) {
           : !hasPremium(user) && trialEnded(user) && old?.startConversation
             ? premiumReply()
             : old?.startConversation
-              ? {
-                  text: await conversationStarter(user, `telegram:${id}`),
-                  voice: true,
-                }
+              ? await onboardingCompleteReply(user, id)
               : await makeReply(
                   user,
                   id,
@@ -363,6 +385,17 @@ export async function telegramUpdate(body: unknown) {
       await db.updates.updateOne(
         { _id: id },
         { $set: { status: "ready", payload } },
+      );
+    }
+    if (payload.introText && !old?.introSent) {
+      await sendBotReply(
+        target.id,
+        { text: payload.introText },
+        `telegram:${id}:intro`,
+      );
+      await db.updates.updateOne(
+        { _id: id },
+        { $set: { introSent: true } },
       );
     }
     await sendBotReply(target.id, payload, `telegram:${id}`);
