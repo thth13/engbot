@@ -14,6 +14,7 @@ const formatDate = (value: string) => {
     : new Intl.DateTimeFormat("en-US", {
         dateStyle: "medium",
         timeStyle: "short",
+        hourCycle: "h23",
         timeZone: "Europe/Kyiv",
       }).format(date);
 };

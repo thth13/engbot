@@ -60,6 +60,8 @@ Premium uses shared native Telegram buttons for 7 days (60 Stars) and 30 days (2
 
 ## Administration
 
+All administration timestamps use a 24-hour clock (00:00–23:59), owned by the shared `formatDate` formatter in `apps/web/src/components/uzerz.tsx`.
+
 `/uzerz` is a public, read-only data workspace with a standalone main-content layout; Telegram authentication is not required. It reuses the pink table-header tint, panel, filter buttons, native OS-owned selects and shared pagination. Wide semantic tables own horizontal overflow and a bounded vertical scroller; the page keeps document scrolling. Full long values expand in place. Registration and other timestamps include the year and time, use Europe/Kyiv with automatic daylight-saving adjustment, and are explicitly labeled Kyiv time. This display timezone applies only to administration; stored dates and user schedule settings retain their original meaning.
 
 ## Conversation preferences
