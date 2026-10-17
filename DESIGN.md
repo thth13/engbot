@@ -58,7 +58,7 @@ Telegram owns the native message and inline-button appearance. Bot onboarding us
 
 ## Administration
 
-`/uzerz` is a public, read-only data workspace with a standalone main-content layout; Telegram authentication is not required. It reuses the pink table-header tint, panel, filter buttons, native OS-owned selects and shared pagination. Wide semantic tables own horizontal overflow and a bounded vertical scroller; the page keeps document scrolling. Full long values expand in place. Registration and other timestamps include the year and time and are explicitly labeled UTC.
+`/uzerz` is a public, read-only data workspace with a standalone main-content layout; Telegram authentication is not required. It reuses the pink table-header tint, panel, filter buttons, native OS-owned selects and shared pagination. Wide semantic tables own horizontal overflow and a bounded vertical scroller; the page keeps document scrolling. Full long values expand in place. Registration and other timestamps include the year and time, use Europe/Kyiv with automatic daylight-saving adjustment, and are explicitly labeled Kyiv time. This display timezone applies only to administration; stored dates and user schedule settings retain their original meaning.
 
 ## Conversation preferences
 

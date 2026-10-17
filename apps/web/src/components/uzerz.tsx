@@ -14,7 +14,7 @@ const formatDate = (value: string) => {
     : new Intl.DateTimeFormat("en-US", {
         dateStyle: "medium",
         timeStyle: "short",
-        timeZone: "UTC",
+        timeZone: "Europe/Kyiv",
       }).format(date);
 };
 const systemCollections: Record<string, string> = {
@@ -170,7 +170,7 @@ export function Uzerz() {
         <h1>Uzerz</h1>
         <p>
           Users and the learning activity behind English Coach. All timestamps
-          are in UTC.
+          are in Kyiv time (Europe/Kyiv).
         </p>
       </div>
       <div className="filters admin-tabs" aria-label="Data tables">
@@ -311,7 +311,7 @@ export function Uzerz() {
             >
               <table className="admin-table">
                 <caption className="sr-only">
-                  {table.label}. Timestamps use UTC.
+                  {table.label}. Timestamps use Kyiv time (Europe/Kyiv).
                 </caption>
                 <thead>
                   <tr>
