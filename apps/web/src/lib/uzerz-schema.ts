@@ -24,6 +24,7 @@ export const adminTables: AdminTable[] = [
     columns: [
       { key: "username", label: "Username" },
       { key: "usage", label: "Messages used · local day" },
+      { key: "totalMessages", label: "Total messages" },
       { key: "lastMessageAt", label: "Last message", date: true },
     ],
   },

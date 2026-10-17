@@ -204,7 +204,7 @@ export function Uzerz() {
             <p className="helper">
               {view.direction === "newest" ? "Newest first" : "Oldest first"} ·{" "}
               {table.key === "trialUsage"
-                ? "One row per user and local day. Used trial messages only; Premium is excluded. Older records may have no message time."
+                ? "One row per user and local day. Messages used counts trial quota; Total messages counts all saved user messages, including Premium. Older records may have no message time."
                 : "Scroll horizontally to see every column."}
             </p>
           </div>

@@ -60,7 +60,7 @@ Premium uses shared native Telegram buttons for 7 days (60 Stars) and 30 days (2
 
 ## Administration
 
-Trial usage reuses the administration table with three columns: Telegram username (fallback: saved name or ID), used quota slots with the user's local day, and last quota reservation time in Kyiv. Each row represents one user/day, newest activity first. Legacy entries have no exact time and display a dash; their local day provides approximate ordering. Username is refreshed from authenticated Telegram data; quota timestamps are written only for new reservations, not retries. Premium messages do not consume trial quota and are excluded.
+Trial usage reuses the administration table with four columns: Telegram username (fallback: saved name or ID), used quota slots with the user's local day, total saved user messages across all days and plans, and last quota reservation time in Kyiv. Each row represents one user/day, newest activity first. Legacy entries have no exact time and display a dash; their local day provides approximate ordering. Username is refreshed from authenticated Telegram data; quota timestamps are written only for new reservations, not retries. Premium messages do not consume trial quota; they are included in Total messages, which counts saved messages and excludes bot replies and failed unsaved requests.
 
 All administration timestamps use a 24-hour clock (00:00–23:59), owned by the shared `formatDate` formatter in `apps/web/src/components/uzerz.tsx`.
 

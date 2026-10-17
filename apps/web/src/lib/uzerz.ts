@@ -107,6 +107,28 @@ export async function readAdminData(body: unknown): Promise<AdminData> {
     Math.max(0, Math.ceil(total / input.pageSize) - 1),
   );
   const direction = input.direction === "oldest" ? 1 : -1;
+  // Count only for the displayed page, across all days and access plans.
+  const enrich: Document[] =
+    table.key === "trialUsage"
+      ? [
+          {
+            $lookup: {
+              from: "messages",
+              localField: "userId",
+              foreignField: "userId",
+              pipeline: [{ $count: "total" }],
+              as: "messageCount",
+            },
+          },
+          {
+            $set: {
+              totalMessages: {
+                $ifNull: [{ $arrayElemAt: ["$messageCount.total", 0] }, 0],
+              },
+            },
+          },
+        ]
+      : [];
   const rows = await collection
     .aggregate<Record<string, unknown>>(
       [
@@ -115,6 +137,7 @@ export async function readAdminData(body: unknown): Promise<AdminData> {
         { $sort: { [table.sort]: direction, _id: direction } },
         { $skip: page * input.pageSize },
         { $limit: input.pageSize },
+        ...enrich,
         {
           $project: Object.fromEntries(
             table.columns.map((column) => [column.key, 1]),
