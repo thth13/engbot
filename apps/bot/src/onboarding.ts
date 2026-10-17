@@ -104,7 +104,7 @@ export async function beginOnboarding(
   const draft: BotDraft = {
     revision: randomBytes(6).toString("hex"),
     step: 0,
-    settings: { timezone: "Europe/Kyiv", ...user.settings },
+    settings: { timezone: "Asia/Kolkata", ...user.settings },
   };
   const db = await database();
   const reply = onboardingReply(
@@ -202,7 +202,7 @@ export async function advanceOnboarding(
         goal: "Speak confidently",
         interests: "",
         dailyGoal: 10,
-        timezone: "Europe/Kyiv",
+        timezone: "Asia/Kolkata",
         ...next.settings,
         [step.key]: value,
       };
