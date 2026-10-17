@@ -2,6 +2,41 @@ import { createHash } from "node:crypto";
 import { database } from "@engbot/core/db";
 import type { BotReply } from "@engbot/core/schema";
 import { telegramCall } from "./api";
+import { hasVoiceTime, reserveVoiceTime, voiceUsageKey } from "./voice-quota";
+
+// Opus granule positions use a 48 kHz clock, including encoder pre-skip.
+function opusDuration(audio: ArrayBuffer) {
+  const bytes = Buffer.from(audio);
+  let offset = 0;
+  let preSkip: number | undefined;
+  let samples = 0;
+  let ended = false;
+  while (offset + 27 <= bytes.length) {
+    if (bytes.toString("ascii", offset, offset + 4) !== "OggS") break;
+    const segments = bytes[offset + 26];
+    const body = offset + 27 + segments;
+    if (body > bytes.length) break;
+    let size = 0;
+    for (let i = offset + 27; i < body; i++) size += bytes[i];
+    if (body + size > bytes.length) break;
+    if (
+      preSkip === undefined && size >= 19 &&
+      bytes.toString("ascii", body, body + 8) === "OpusHead"
+    ) {
+      preSkip = bytes.readUInt16LE(body + 10);
+    }
+    const granule = bytes.readBigInt64LE(offset + 6);
+    if (granule >= 0n) samples = Number(granule);
+    ended = (bytes[offset + 5] & 4) !== 0;
+    offset = body + size;
+  }
+  if (
+    preSkip === undefined || !ended ||
+    offset !== bytes.length || samples <= preSkip
+  )
+    throw new Error("Could not determine speech duration");
+  return (samples - preSkip) / 48000;
+}
 
 async function synthesize(text: string) {
   const key = process.env.OPENAI_API_KEY;
@@ -26,7 +61,10 @@ async function synthesize(text: string) {
   if (!response.ok) throw new Error("Speech generation failed");
   const audio = await response.arrayBuffer();
   if (!audio.byteLength) throw new Error("Speech audio is empty");
-  return new Blob([audio], { type: "audio/ogg" });
+  return {
+    audio: new Blob([audio], { type: "audio/ogg" }),
+    duration: opusDuration(audio),
+  };
 }
 
 export async function sendBotReply(
@@ -40,6 +78,13 @@ export async function sendBotReply(
   }
 
   const db = await database();
+  const user = await db.users.findOne({ "bot.chatId": chatId });
+  const sendText = (content = text) =>
+    telegramCall("sendMessage", { chat_id: chatId, text: content, reply_markup });
+  if (!user) return sendText();
+  const quotaKey = voiceUsageKey(user);
+  const requestId = `outgoing:${sourceId}`;
+  if (!(await hasVoiceTime(quotaKey, requestId))) return sendText();
   const id = createHash("sha256")
     .update(`${chatId}:${sourceId}`)
     .digest("hex")
@@ -52,9 +97,14 @@ export async function sendBotReply(
   );
   const saved = (await db.voiceReplies.findOne({ _id: id }))!;
   let audio: Blob | undefined;
-  if (!saved.fileId) {
+  let duration = saved.duration;
+  // Legacy cached files have no duration; regenerate them before reserving time.
+  const cachedFileId = duration ? saved.fileId : undefined;
+  if (!cachedFileId) {
     try {
-      audio = await synthesize(saved.text);
+      const speech = await synthesize(saved.text);
+      audio = speech.audio;
+      duration = speech.duration;
     } catch {
       console.error("Voice generation unavailable; delivering text instead");
       return telegramCall("sendMessage", {
@@ -64,9 +114,11 @@ export async function sendBotReply(
       });
     }
   }
+  if (!duration || !(await reserveVoiceTime(quotaKey, requestId, duration)))
+    return sendText(saved.text);
   const form = new FormData();
   form.set("chat_id", String(chatId));
-  if (saved.fileId) form.set("voice", saved.fileId);
+  if (cachedFileId) form.set("voice", cachedFileId);
   else form.set("voice", audio!, "reply.ogg");
   form.set(
     "reply_markup",
@@ -81,7 +133,7 @@ export async function sendBotReply(
   if (sent.voice?.file_id) {
     // A cache failure must not cause an already delivered voice to be resent.
     await db.voiceReplies
-      .updateOne({ _id: id }, { $set: { fileId: sent.voice.file_id } })
+      .updateOne({ _id: id }, { $set: { fileId: sent.voice.file_id, duration } })
       .catch(() => console.error("Could not cache Telegram voice file"));
   }
   return sent;

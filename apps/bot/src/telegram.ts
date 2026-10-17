@@ -13,6 +13,7 @@ import {
 } from "./onboarding";
 import { telegramCall, TelegramDeliveryError } from "./api";
 import { sendBotReply, showVoiceText } from "./voice";
+import { releaseVoiceTime, reserveVoiceTime, voiceUsageKey } from "./voice-quota";
 import {
   transcribeVoice,
   validateVoice,
@@ -233,7 +234,18 @@ async function makeReply(
       const saved = await db.updates.findOne({ _id: id });
       text = saved?.transcription;
       if (!text) {
-        text = await transcribeVoice(voice);
+        const quotaKey = voiceUsageKey(user);
+        const requestId = `incoming:${id}`;
+        if (
+          !(await reserveVoiceTime(quotaKey, requestId, Math.max(1, voice.duration)))
+        )
+          return { text: "Please send your message as text so we can keep chatting." };
+        try {
+          text = await transcribeVoice(voice);
+        } catch (error) {
+          await releaseVoiceTime(quotaKey, requestId);
+          throw error;
+        }
         await db.updates.updateOne(
           { _id: id },
           { $set: { transcription: text } },

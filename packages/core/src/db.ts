@@ -44,6 +44,11 @@ export async function database() {
     trialUsage: db.collection<{ _id: string; requests: string[] }>(
       "trialUsage",
     ),
+    voiceUsage: db.collection<{
+      _id: string;
+      seconds: number;
+      requests: { id: string; seconds: number }[];
+    }>("voiceUsage"),
     payments: db.collection<{
       _id: string;
       userId: string;
@@ -77,6 +82,7 @@ export async function database() {
       chatId: number;
       text: string;
       fileId?: string;
+      duration?: number;
       createdAt: Date;
     }>("voiceReplies"),
     updates: db.collection<{
