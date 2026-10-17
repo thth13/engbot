@@ -23,7 +23,7 @@ Authentication: server-verified Telegram Mini App initData; learner data reads a
 
 - Telegram entry → validate signature → signed httpOnly session → onboarding if needed → home.
 - Native language in onboarding uses `LanguageSelect`: an authored searchable combobox with a bounded list, clear action, arrow/Enter/Escape controls and explicit selection. Search is transient local state; only the selected language enters the profile draft. Other profile selects retain their native popup.
-- Onboarding shows one question per step: native language → level → daily goal → learning goal → optional interests. Level, minutes and learning goal use native toggle buttons with visible selection. Next validates the current answer; Back preserves answers; only the final action saves. Step headings receive keyboard focus. Existing profile editing keeps its full form and native selects.
+- Onboarding shows one question per step: explanation language → learning goal → Telegram reply format → daily Telegram schedule in India Standard Time. Learning goal and reply format use native toggle buttons with visible selection. Next validates the current answer; Back preserves answers; only the final action saves. Step headings receive keyboard focus. Existing profile editing keeps its full form and native selects.
 - Telegram SDK loads after the interface starts, with a 10-second deadline. Entry has a shared 25-second deadline for SDK/session/login/data; failures show an inline error and retry. Superseded entry attempts cannot update the screen.
 - Profile → validate → save → acknowledgement and explicit conversation link. Profile drafts are retained in tab-scoped sessionStorage across same-app navigation and removed on save; page unload also warns.
 - Chat → submit with request UUID → analyze → atomic message/mistake/XP persistence → reload history. Failure preserves input and request UUID for retry.
@@ -39,7 +39,7 @@ Empty views explain the next action. No fake success on API failure. Inline erro
 
 ## Telegram flows
 
-- `/start` collects native language, level, goal, minutes, interests, timezone and daily conversation time inside Telegram. Existing web profiles remain intact until the last step commits. `/settings` repeats this flow; Back preserves answers.
+- `/start` collects explanation language, learning goal, reply format and daily conversation time in India Standard Time inside Telegram. Existing web profiles remain intact until the last step commits. `/settings` repeats this flow; Back preserves answers.
 - Canonical bot form owner: `apps/bot/src/onboarding.ts`; shared validation: `settingsSchema`. Each step uses a revision to reject stale callbacks. Draft changes and cached replies commit in one MongoDB transaction; retries reuse the cached reply.
 - Finishing onboarding starts an English conversation immediately. `/topic` requests a fresh topic. Bot questions are stored separately from learner messages, included in AI history and never award XP.
 - Daily starters are optional, at the selected local hour, at most one attempted delivery per local date. No catch-up messages outside that hour; no daily message within one hour of user interaction or while onboarding. `/pause` disables and `/resume` enables daily messages.
@@ -56,3 +56,6 @@ Empty views explain the next action. No fake success on API failure. Inline erro
 ## Product event logging
 
 Product analytics uses `@engbot/core/events` and POST `/api/telemetry`, independently of existing administrator notifications. The shared `WebEventLogger` in the root layout captures document openings and enabled button/link clicks without blocking navigation. CoachApp records authenticated entry and onboarding question transitions. The API records validated first-profile completion. Bot onboarding checkpoints atomically persist events and last-question progress. See `docs/LOGGING.md` for the exact event inventory, public `/uzerz` visibility, delivery limitations and disable/removal points. The server flag `EVENT_LOGGING_ENABLED=false` disables new event/progress writes; existing notification delivery remains independent.
+
+- Onboarding v3 invalidates older bot drafts and web drafts to prevent old step numbers from selecting a different answer. Legacy profiles remain compatible. Schedule is saved atomically with the web profile and used by the same Telegram scheduler.
+- AI learner profiles are persisted in the message transaction without extra requests. A level estimate requires at least three messages of eight words each and eighty words total in recent history, plus the model judging the evidence sufficient. Interests are non-sensitive explicitly stated preferences, separate from manual interests.

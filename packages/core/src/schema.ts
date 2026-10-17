@@ -1,5 +1,6 @@
 import { z } from "zod";
 export const settingsSchema = z.object({
+  replyMode: z.enum(["text", "voice"]).optional(),
   nativeLanguage: z.string().trim().min(2).max(40),
   englishLevel: z.enum(["A1", "A2", "B1", "B2", "C1", "unknown"]),
   goal: z.enum([
@@ -24,7 +25,15 @@ export const settingsSchema = z.object({
   }, "Invalid time zone"),
 });
 export type Settings = z.infer<typeof settingsSchema>;
+export const learnerProfileSchema = z.object({
+  englishLevel: z.enum(["A1", "A2", "B1", "B2", "C1", "unknown"]),
+  interests: z.string().max(300),
+});
+export const botScheduleSchema = z.object({
+  hour: z.number().int().min(0).max(23).nullable(),
+});
 export const correctionSchema = z.object({
+  learnerProfile: learnerProfileSchema.optional(),
   reply: z.string().min(1).max(3000),
   corrected: z.string().max(3000),
   naturalVersion: z.string().max(3000),
@@ -91,6 +100,7 @@ export interface EventLog {
   createdAt: Date;
 }
 export interface BotDraft {
+  version?: number;
   revision: string;
   step: number;
   settings: Partial<Settings>;
@@ -112,6 +122,7 @@ export interface User {
   _id: string;
   name: string;
   settings: Settings | null;
+  learnerProfile?: z.infer<typeof learnerProfileSchema> & { updatedAt: Date };
   xp: number;
   streak: number;
   longestStreak: number;

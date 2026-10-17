@@ -8,7 +8,7 @@
 4. Vocabulary: save real conversation suggestions and review with the same scheduler.
 5. Companion UI: dashboard, mistakes, vocabulary, practice, progress, profile; bot commands and text conversation.
 
-P1 voice, measured speaking time and weekly report generation are not implemented. Telegram onboarding and optional scheduled conversation starters are implemented in the bot. No placement test in P0: unknown level uses A2 language provisionally and is displayed as unknown. No inferred CEFR improvement claim.
+Voice replies and transcription, Telegram onboarding and optional scheduled conversation starters are implemented. Measured speaking time and weekly reports are not implemented. The coach starts with simple language and gradually estimates writing level from learner messages; it is a provisional estimate, not a placement test or a certified CEFR result.
 
 ## Stack
 
@@ -68,7 +68,7 @@ The bot deletes the old webhook without dropping pending updates and uses long p
 
 ## Telegram onboarding and initiative
 
-`onboarding.ts` owns a seven-step profile draft in `users.bot.draft`; each callback carries a random revision. Draft transitions and outbound step payloads commit atomically. The final transition validates the shared settings schema, commits preferences, and checkpoints the first conversation request. Telegram polling subscribes to messages and callback queries. Only explicit section commands attach web-app links.
+`onboarding.ts` owns a versioned four-step profile draft in `users.bot.draft`; each callback carries a random revision. Draft transitions and outbound step payloads commit atomically. The final transition validates the shared settings schema, commits preferences, and checkpoints the first conversation request. Telegram polling subscribes to messages and callback queries. Only explicit section commands attach web-app links.
 
 `conversations.ts` runs alongside polling and checks eligible users once per minute using a database cursor. Eligibility requires opt-in, a private chat ID, a completed profile, no active draft and at least one hour without interaction. It sends during the selected local hour, with a database lease and at most one reserved attempt per local date. Activity and preferences are rechecked after AI generation. Explicit rate limits permit a later retry; blocked bots are disabled. Ambiguous delivery failures keep the date reserved to avoid duplicate unsolicited messages. No catch-up burst occurs after downtime. Shutdown aborts the schedule loop and waits for in-flight work.
 
@@ -77,3 +77,7 @@ The bot deletes the old webhook without dropping pending updates and uses long p
 `/uzerz` and POST `/api/uzerz` provide a public read-only cross-user view, per the explicit product decision. Neither requires a Telegram session or an ID allowlist. The page renders outside CoachApp so anonymous browser visitors can open it directly. The endpoint uses the existing Origin check and returns private/no-store responses. Learner endpoints retain their existing session checks. All projected user data, messages and payment records on this page are publicly accessible.
 
 Tables cover users, messages, mistakes, vocabulary, exercises, daily activity, payments and bot conversation starters. Explicit per-table projections prevent raw delivery payloads and private exercise solutions from being returned. Other collections expose estimated counts only. Search text is escaped before regex matching, limited to 150 characters and sent in a POST body; collection names, searchable fields, projections and sort fields come from server-maintained metadata. Pagination is bounded to 10/25/50 rows, empty pages clamp to the current last page, and database operations have ten-second deadlines.
+
+## Adaptive onboarding (October 2026)
+
+Collect explanation language, learning goal, Telegram reply format and daily schedule. Both surfaces use Asia/Kolkata without a time-zone question. Level, minutes and interests are not onboarding questions. `settings.replyMode` selects text or voice; missing values preserve legacy voice behavior. `learnerProfile` stores provisional writing level and explicitly expressed conversational interests separately from manual settings. Manual interests take priority. AI analysis includes these suggestions in the existing structured response; message persistence commits accepted estimates atomically, and repeated requests do not update them twice. Level persistence needs at least three substantive recent learner messages and eighty words plus sufficient model evidence. Daily goals remain as legacy schema fields only.

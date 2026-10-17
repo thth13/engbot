@@ -14,23 +14,11 @@ const steps: { key: string; question: string; choices: readonly Choice[] }[] = [
   {
     key: "nativeLanguage",
     question:
-      "What language do you usually speak? You can also type your language.",
+      "What language should I use to explain mistakes? You can also type your language.",
     choices: [
       ["English", "English"],
       ["Hindi · हिन्दी", "Hindi"],
       ["Hinglish · Hindi + English", "Hinglish"],
-    ],
-  },
-  {
-    key: "englishLevel",
-    question: "What is your English level?",
-    choices: [
-      ["A1 · Beginner", "A1"],
-      ["A2 · Elementary", "A2"],
-      ["B1 · Intermediate", "B1"],
-      ["B2 · Upper intermediate", "B2"],
-      ["C1 · Advanced", "C1"],
-      ["I’m not sure", "unknown"],
     ],
   },
   {
@@ -48,35 +36,18 @@ const steps: { key: string; question: string; choices: readonly Choice[] }[] = [
     ],
   },
   {
-    key: "dailyGoal",
-    question: "How many minutes a day would you like to practice?",
-    choices: [
-      ["5 minutes", 5],
-      ["10 minutes", 10],
-      ["15 minutes", 15],
-      ["30 minutes", 30],
-    ],
-  },
-  {
-    key: "interests",
+    key: "replyMode",
     question:
-      "What would you like to talk about? Choose a topic or type your own, separated by commas.",
+      "How should I reply to you? You can send me text or voice either way.",
     choices: [
-      ["Movies and TV shows", "Movies and TV shows"],
-      ["Technology and games", "Technology and games"],
-      ["Travel and food", "Travel and food"],
-      ["Music and art", "Music and art"],
-      ["Sports and wellbeing", "Sports and wellbeing"],
-      [
-        "Surprise me",
-        "Everyday life, imaginative dilemmas and surprising ideas",
-      ],
+      ["Text messages", "text"],
+      ["Voice messages", "voice"],
     ],
   },
   {
     key: "hour",
     question:
-      "When should I start a conversation? I’ll send a new topic once a day at your local time. Use /pause to turn this off.",
+      "When should I start a conversation? I’ll send a new topic once a day at the selected time in India (IST). Use /pause to turn this off.",
     choices: [
       ["Morning · 09:00", 9],
       ["Afternoon · 13:00", 13],
@@ -86,7 +57,7 @@ const steps: { key: string; question: string; choices: readonly Choice[] }[] = [
   },
 ];
 export function onboardingReply(draft: BotDraft, prefix = ""): BotReply {
-  const step = steps[draft.step];
+  const step = steps[draft.step] || steps[0];
   const rows = step.choices.map(([text], index) => [
     { text, callback_data: `ob:${draft.revision}:${index}` },
   ]);
@@ -102,9 +73,10 @@ export async function beginOnboarding(
   updateId: string,
 ): Promise<BotReply> {
   const draft: BotDraft = {
+    version: 3,
     revision: randomBytes(6).toString("hex"),
     step: 0,
-    settings: { timezone: "Asia/Kolkata", ...user.settings },
+    settings: { ...user.settings, timezone: "Asia/Kolkata" },
   };
   const db = await database();
   const reply = onboardingReply(
@@ -170,6 +142,7 @@ export async function advanceOnboarding(
     return {
       text: "These buttons are no longer active. Use /settings to set up your profile or /topic for a new topic.",
     };
+  if (draft.version !== 3) return beginOnboarding(user, updateId);
   const [, revision, action] = (data || "").split(":");
   if (data && (revision !== draft.revision || !data.startsWith("ob:")))
     return onboardingReply(
@@ -187,8 +160,7 @@ export async function advanceOnboarding(
     let value: string | number | null | undefined;
     if (data && /^\d+$/.test(action || ""))
       value = step.choices[Number(action)]?.[1];
-    else if (text && ["nativeLanguage", "interests"].includes(step.key))
-      value = text.trim();
+    else if (text && step.key === "nativeLanguage") value = text.trim();
     if (value === undefined)
       return onboardingReply(
         draft,

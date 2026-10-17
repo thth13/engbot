@@ -13,7 +13,7 @@ import {
   snapshot,
   submitAnswer,
 } from "@engbot/core/learning";
-import { settingsSchema } from "@engbot/core/schema";
+import { settingsSchema, botScheduleSchema } from "@engbot/core/schema";
 import { HttpError } from "@engbot/core/errors";
 import { readAdminData } from "@/lib/uzerz";
 import { eventLoggingEnabled, logEvent } from "@engbot/core/events";
@@ -140,7 +140,13 @@ async function handle(
     const user = await currentUser();
     const db = await database();
     if (path === "profile") {
-      const settings = settingsSchema.parse(body);
+      const settings = {
+        ...settingsSchema.parse(body),
+        timezone: "Asia/Kolkata",
+      };
+      const schedule = z
+        .object({ botSchedule: botScheduleSchema.optional() })
+        .parse(body).botSchedule;
       const firstOnboarding = !user.settings;
       // LOGGING: completion is recorded only after the server validates and saves settings.
       const result = await db.users.updateOne(
@@ -148,14 +154,20 @@ async function handle(
         {
           $set: {
             settings,
+            ...(schedule
+              ? {
+                  "bot.enabled": schedule.hour !== null,
+                  "bot.hour": schedule.hour ?? 19,
+                }
+              : {}),
             ...(firstOnboarding && eventLoggingEnabled()
               ? {
                   "onboardingProgress.web": {
                     status: "completed" as const,
-                    step: 5,
+                    step: 4,
                     stepName: "completed",
-                    maxStep: 5,
-                    totalSteps: 5,
+                    maxStep: 4,
+                    totalSteps: 4,
                     updatedAt: new Date(),
                     completedAt: new Date(),
                   },
@@ -170,7 +182,7 @@ async function handle(
           event: "web_onboarding_completed",
           source: "Web App",
           userId: user._id,
-          details: { initial: true, totalSteps: 5 },
+          details: { initial: true, totalSteps: 4 },
         });
       return NextResponse.json({ ok: true });
     }

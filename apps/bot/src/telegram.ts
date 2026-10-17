@@ -98,7 +98,10 @@ function startTyping(chatId: number) {
   };
 }
 
-async function onboardingCompleteReply(user: User, id: string): Promise<BotReply> {
+async function onboardingCompleteReply(
+  user: User,
+  id: string,
+): Promise<BotReply> {
   const db = await database();
   const text =
     "Hey! 👋 I'm Alex, your English practice buddy.\n\n" +
@@ -116,6 +119,7 @@ async function onboardingCompleteReply(user: User, id: string): Promise<BotReply
     { upsert: true },
   );
   return {
+    voice: user.settings?.replyMode !== "text",
     introText:
       `All set! ✅${!hasPremium(user) ? "\n\nYour trial lasts 3 days from registration and includes 10 messages per day. After that, Premium costs 250 Stars for 30 days." : ""}\n\n` +
       (user.bot?.enabled
@@ -177,6 +181,7 @@ async function makeReply(
     if (reply) return reply;
     user = (await db.users.findOne({ _id: user._id }))!;
   } else if (user.bot?.draft) {
+    if (user.bot.draft.version !== 3) return beginOnboarding(user, id);
     if (command) return onboardingReply(user.bot.draft);
     const reply = await advanceOnboarding(user, id, undefined, text);
     if (reply) return reply;
@@ -234,7 +239,7 @@ async function makeReply(
       };
     const result = await analyze(user, text, `telegram:${id}`);
     return {
-      voice: true,
+      voice: user.settings?.replyMode !== "text",
       text: (
         result.reply +
         result.mistakes
@@ -253,7 +258,7 @@ async function makeReply(
   });
   if (completed) return onboardingCompleteReply(user, id);
   return {
-    voice: true,
+    voice: user.settings?.replyMode !== "text",
     text: await conversationStarter(user, `telegram:${id}`),
   };
 }
@@ -393,10 +398,7 @@ export async function telegramUpdate(body: unknown) {
         { text: payload.introText },
         `telegram:${id}:intro`,
       );
-      await db.updates.updateOne(
-        { _id: id },
-        { $set: { introSent: true } },
-      );
+      await db.updates.updateOne({ _id: id }, { $set: { introSent: true } });
     }
     await sendBotReply(target.id, payload, `telegram:${id}`);
     stopTyping();

@@ -134,7 +134,11 @@ export async function runConversations(signal: AbortSignal) {
               { $set: { "bot.lastPromptDay": day } },
             );
             if (!reserved.modifiedCount) continue;
-            await sendBotReply(user.bot!.chatId, { text, voice: true }, id);
+            await sendBotReply(
+              user.bot!.chatId,
+              { text, voice: settings.replyMode !== "text" },
+              id,
+            );
             await db.starters.updateOne(
               { _id: id },
               { $set: { sentAt: new Date() } },

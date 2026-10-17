@@ -36,15 +36,9 @@ const schema = z.object({
     ),
   button: z.string().max(120).optional(),
   target: z.string().max(200).optional(),
-  step: z.number().int().min(1).max(5).optional(),
+  step: z.number().int().min(1).max(4).optional(),
 });
-const webSteps = [
-  "nativeLanguage",
-  "englishLevel",
-  "dailyGoal",
-  "goal",
-  "interests",
-];
+const webSteps = ["nativeLanguage", "goal", "replyMode", "schedule"];
 
 // LOGGING: only server-verified sessions can attach a Telegram user ID.
 export async function saveWebEvent(body: unknown, request: Request) {

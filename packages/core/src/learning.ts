@@ -35,7 +35,14 @@ export function review(item: Review, correct: boolean): Review {
 }
 export function requireSettings(user: User) {
   if (!user.settings) throw new HttpError(409, "Complete your profile first.");
-  return user.settings;
+  return {
+    ...user.settings,
+    englishLevel:
+      user.learnerProfile?.englishLevel !== "unknown"
+        ? user.learnerProfile?.englishLevel || user.settings.englishLevel
+        : user.settings.englishLevel,
+    interests: user.settings.interests || user.learnerProfile?.interests || "",
+  };
 }
 async function reward(
   userId: string,
@@ -97,11 +104,13 @@ export async function analyze(
   if (existing) return existing.analysis;
   await reserveTrialMessage(user._id, requestId);
   await rateLimit(user._id);
-  const analysis = await ai.analyzeMessage(
-    text,
-    settings,
-    await conversationHistory(user._id),
+  const history = await conversationHistory(user._id);
+  const analysis = await ai.analyzeMessage(text, settings, history);
+  const samples = [...history.map((entry) => entry.text), text].filter(
+    (entry) => entry.trim().split(/\s+/).length >= 8,
   );
+  const enoughEvidence =
+    samples.length >= 3 && samples.join(" ").split(/\s+/).length >= 80;
   const session = db.client.startSession();
   try {
     await session.withTransaction(async () => {
@@ -110,6 +119,26 @@ export async function analyze(
         { _id: id, userId: user._id, text, analysis, createdAt: new Date() },
         { session },
       );
+      if (analysis.learnerProfile) {
+        const previous = await db.users.findOne({ _id: user._id }, { session });
+        await db.users.updateOne(
+          { _id: user._id },
+          {
+            $set: {
+              learnerProfile: {
+                englishLevel:
+                  enoughEvidence &&
+                  analysis.learnerProfile.englishLevel !== "unknown"
+                    ? analysis.learnerProfile.englishLevel
+                    : previous?.learnerProfile?.englishLevel || "unknown",
+                interests: analysis.learnerProfile.interests,
+                updatedAt: new Date(),
+              },
+            },
+          },
+          { session },
+        );
+      }
       const seen = new Set<string>();
       for (const mistake of analysis.mistakes) {
         const key = identity(

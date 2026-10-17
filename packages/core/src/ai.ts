@@ -1,6 +1,7 @@
 import { z } from "zod";
 import {
   correctionSchema,
+  learnerProfileSchema,
   exerciseSchema,
   gradeSchema,
   type Settings,
@@ -129,8 +130,8 @@ class OpenAIProvider implements AIProvider {
     history: { text: string; reply: string }[],
   ) {
     return this.structured(
-      correctionSchema,
-      "Reply naturally in English, briefly. Be an engaged conversation partner: react to the actual answer, use their interests and goal, and keep the conversation going with one relevant follow-up question or a concrete new angle when the topic is exhausted. Match their English level. Avoid repetitive interviews and generic praise. Analyze ONLY the current message. Explain corrections and translate vocabulary in the language explicitly selected in settings, defaulting to English. If English is selected, use simple English vocabulary definitions. Preserve intended meaning. Do not invent mistakes. Return all significant mistakes (at most 12); category is a consistent English grammar topic. Corrected is grammatical English; naturalVersion is idiomatic English. Suggest up to 3 useful words occurring in the conversation. If level is unknown, use A2 language without claiming assessment.",
+      correctionSchema.extend({ learnerProfile: learnerProfileSchema }),
+      "Reply naturally in English, briefly. Be an engaged conversation partner: react to the actual answer, use their interests and goal, and keep the conversation going with one relevant follow-up question or a concrete new angle when the topic is exhausted. Match their English level. Avoid repetitive interviews and generic praise. Analyze ONLY the current message. Explain corrections and translate vocabulary in the language explicitly selected in settings, defaulting to English. If English is selected, use simple English vocabulary definitions. Preserve intended meaning. Do not invent mistakes. Return all significant mistakes (at most 12); category is a consistent English grammar topic. Corrected is grammatical English; naturalVersion is idiomatic English. Suggest up to 3 useful words occurring in the conversation. Adapt difficulty gradually to the learner’s own messages. When evidence is sparse, start with simple A2 language. Return learnerProfile: a provisional writing-level estimate based ONLY on learner-authored English, never your replies, copied exercises or quoted text. Use unknown unless at least three substantive learner messages provide consistent evidence; this is not a certified CEFR or speaking/listening assessment. Extract only explicitly expressed, non-sensitive conversational interests, not assumed demographics or role-play facts. Preserve previously learned interests supplied in settings when still relevant; respect explicit corrections or requests to forget them. Do not overwrite manually selected interests. Do not turn the conversation into an assessment or questionnaire.",
       { text, settings, history },
     );
   }

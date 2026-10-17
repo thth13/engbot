@@ -29,7 +29,7 @@ import {
   LoaderCircle,
 } from "lucide-react";
 import type { AppData, Settings } from "@engbot/core/schema";
-import { settingsSchema } from "@engbot/core/schema";
+import { settingsSchema, botScheduleSchema } from "@engbot/core/schema";
 import { loadTelegramWebApp } from "@/lib/telegram-web-app";
 import { trackWebEvent } from "@/lib/telemetry";
 import { trackEvent } from "@/lib/track-event";
@@ -284,9 +284,10 @@ export function CoachApp({ page }: { page: string }) {
           <span>
             <strong>{data.user.name}</strong>
             <small>
-              {data.user.settings?.englishLevel === "unknown"
-                ? "Level not set"
-                : data.user.settings?.englishLevel || "Set up your profile"}
+              {data.user.learnerProfile?.englishLevel &&
+              data.user.learnerProfile.englishLevel !== "unknown"
+                ? `Estimated ${data.user.learnerProfile.englishLevel}`
+                : "Learning your level"}
             </small>
           </span>
           <Settings2 size={17} />
@@ -476,7 +477,7 @@ function Dashboard({ data }: { data: AppData }) {
           <p>
             {today
               ? "You have already taken a step today. Keep it up!"
-              : `Your goal is ${data.user.settings?.dailyGoal} minutes a day. Start with one conversation.`}
+              : "Start with one conversation today."}
           </p>
         </section>
       </div>
@@ -485,11 +486,12 @@ function Dashboard({ data }: { data: AppData }) {
           icon={<GraduationCap />}
           label="Your level"
           value={
-            data.user.settings?.englishLevel === "unknown"
-              ? "—"
-              : data.user.settings?.englishLevel || "—"
+            data.user.learnerProfile?.englishLevel &&
+            data.user.learnerProfile.englishLevel !== "unknown"
+              ? data.user.learnerProfile.englishLevel
+              : "—"
           }
-          note="As selected in your profile"
+          note="Provisional estimate from your writing"
         />
         <Stat
           icon={<BookOpen />}
@@ -602,8 +604,10 @@ function Stat({
     </section>
   );
 }
-const profileLevels = ["A1", "A2", "B1", "B2", "C1", "unknown"] as const;
-const profileMinutes = [5, 10, 15, 20, 30, 60];
+const profileFormSchema = settingsSchema.extend({
+  botSchedule: botScheduleSchema,
+});
+type ProfileForm = Settings & { botSchedule: { hour: number | null } };
 const profileGoals = [
   ["Speak confidently", "Speak confidently"],
   ["Travel", "Travel"],
@@ -615,11 +619,10 @@ const profileGoals = [
   ["Expand vocabulary", "Expand vocabulary"],
 ] as const;
 const onboardingQuestions = [
-  "What is your native language?",
-  "What is your English level?",
-  "How many minutes a day would you like to practice?",
+  "What language should I use to explain mistakes?",
   "Why are you learning English?",
-  "What are you interested in?",
+  "How should I reply to you in Telegram?",
+  "When should I start a conversation in Telegram?",
 ];
 function OnboardingChoices<T extends string | number>({
   options,
@@ -674,15 +677,16 @@ function Profile({
       }
     }
   }, [step, onboarding]);
-  const draftKey = `engbot:profile:${data.user._id}`;
-  const [form, setForm] = useState<Settings>(() => {
+  const draftKey = `engbot:profile:v3:${data.user._id}`;
+  const [form, setForm] = useState<ProfileForm>(() => {
     try {
       const raw = sessionStorage.getItem(draftKey);
       if (raw) {
-        const restored = settingsSchema.safeParse(JSON.parse(raw));
+        const restored = profileFormSchema.safeParse(JSON.parse(raw));
         if (restored.success)
           return {
             ...restored.data,
+            timezone: "Asia/Kolkata",
             nativeLanguage: languageLabel(restored.data.nativeLanguage),
           };
       }
@@ -690,29 +694,54 @@ function Profile({
     return data.user.settings
       ? {
           ...data.user.settings,
+          timezone: "Asia/Kolkata",
+          replyMode: data.user.settings.replyMode || "voice",
+          botSchedule: {
+            hour: data.user.bot?.enabled ? (data.user.bot.hour ?? 19) : null,
+          },
           nativeLanguage: languageLabel(data.user.settings.nativeLanguage),
         }
       : {
           nativeLanguage: "Ukrainian",
-          englishLevel: "A2",
+          englishLevel: "unknown",
+          replyMode: "text",
+          botSchedule: { hour: null },
           goal: "Speak confidently",
           interests: "",
           dailyGoal: 10,
-          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          timezone: "Asia/Kolkata",
         };
   });
+  const savedForm = data.user.settings
+    ? {
+        ...data.user.settings,
+        timezone: "Asia/Kolkata",
+        nativeLanguage: languageLabel(data.user.settings.nativeLanguage),
+        replyMode: data.user.settings.replyMode || "voice",
+        botSchedule: {
+          hour: data.user.bot?.enabled ? (data.user.bot.hour ?? 19) : null,
+        },
+      }
+    : null;
+  const savedFormJson = savedForm
+    ? JSON.stringify(profileFormSchema.parse(savedForm))
+    : "null";
+  const formJson = JSON.stringify(
+    profileFormSchema.safeParse(form).success
+      ? profileFormSchema.parse(form)
+      : form,
+  );
   const [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [saved, setSaved] = useState(false);
   const ref = useRef<HTMLFormElement>(null);
   useEffect(() => {
     try {
-      if (JSON.stringify(form) === JSON.stringify(data.user.settings))
-        sessionStorage.removeItem(draftKey);
+      if (formJson === savedFormJson) sessionStorage.removeItem(draftKey);
       else sessionStorage.setItem(draftKey, JSON.stringify(form));
     } catch {}
-  }, [form, data.user.settings, draftKey]);
-  const dirty = JSON.stringify(form) !== JSON.stringify(data.user.settings);
+  }, [form, formJson, savedFormJson, draftKey]);
+  const dirty = formJson !== savedFormJson;
   useEffect(() => {
     if (!dirty) return;
     const warn = (e: BeforeUnloadEvent) => {
@@ -732,16 +761,16 @@ function Profile({
         !settingsSchema.shape.nativeLanguage.safeParse(form.nativeLanguage)
           .success
       ) {
-        setError("Choose your native language from the list.");
+        setError("Choose a language for explanations.");
         ref.current?.querySelector<HTMLInputElement>("input")?.focus();
         return;
       }
       setStep((current) => current + 1);
       return;
     }
-    const valid = settingsSchema.safeParse(form);
+    const valid = profileFormSchema.safeParse(form);
     if (!valid.success) {
-      setError("Select your native language and check the other fields.");
+      setError("Choose an explanation language and check the other fields.");
       ref.current?.querySelector<HTMLInputElement>("input")?.focus();
       return;
     }
@@ -756,6 +785,37 @@ function Profile({
       setBusy(false);
     }
   }
+  const scheduleFields = (
+    <>
+      <label>
+        Daily Telegram conversation
+        <select
+          aria-describedby="schedule-help"
+          value={form.botSchedule.hour ?? "off"}
+          onChange={(e) =>
+            setForm({
+              ...form,
+              botSchedule: {
+                hour: e.target.value === "off" ? null : Number(e.target.value),
+              },
+            })
+          }
+        >
+          <option value="off">Only when I message you</option>
+          {Array.from({ length: 24 }, (_, hour) => (
+            <option key={hour} value={hour}>
+              {String(hour).padStart(2, "0")}:00
+            </option>
+          ))}
+        </select>
+      </label>
+      <p id="schedule-help" className="helper">
+        Times are in India Standard Time (IST), which also sets your practice
+        days. Daily messages arrive in Telegram after you start the bot. You can
+        turn them off anytime.
+      </p>
+    </>
+  );
   return (
     <>
       <Heading
@@ -805,33 +865,6 @@ function Profile({
               )}
               {step === 1 && (
                 <OnboardingChoices
-                  options={profileLevels.map((value) => ({
-                    value,
-                    label: value === "unknown" ? "I’m not sure yet" : value,
-                  }))}
-                  value={form.englishLevel}
-                  onChange={(englishLevel) =>
-                    setForm({ ...form, englishLevel })
-                  }
-                />
-              )}
-              {step === 2 && (
-                <>
-                  <OnboardingChoices
-                    options={profileMinutes.map((value) => ({
-                      value,
-                      label: `${value} minutes`,
-                    }))}
-                    value={form.dailyGoal}
-                    onChange={(dailyGoal) => setForm({ ...form, dailyGoal })}
-                  />
-                  <p className="helper">
-                    This is your target. Study time is not tracked yet.
-                  </p>
-                </>
-              )}
-              {step === 3 && (
-                <OnboardingChoices
                   options={profileGoals.map(([value, label]) => ({
                     value,
                     label,
@@ -840,34 +873,31 @@ function Profile({
                   onChange={(goal) => setForm({ ...form, goal })}
                 />
               )}
-              {step === 4 && (
+              {step === 2 && (
                 <>
-                  <input
-                    aria-labelledby="onboarding-question"
-                    aria-describedby="onboarding-interests-help"
-                    placeholder="For example: technology, music, travel"
-                    value={form.interests}
-                    maxLength={300}
-                    onChange={(e) =>
-                      setForm({ ...form, interests: e.target.value })
+                  <OnboardingChoices
+                    options={
+                      [
+                        { value: "text", label: "Text messages" },
+                        { value: "voice", label: "Voice messages" },
+                      ] as const
                     }
+                    value={form.replyMode || "text"}
+                    onChange={(replyMode) => setForm({ ...form, replyMode })}
                   />
-                  <p id="onboarding-interests-help" className="helper">
-                    Optional. We’ll suggest conversation topics based on your
-                    interests.
-                  </p>
                   <p className="helper">
-                    Time zone: {form.timezone}. Used to count your practice
-                    days.
+                    You can send text or voice either way. Voice replies include
+                    a transcript button. Web conversations stay in text.
                   </p>
                 </>
               )}
+              {step === 3 && scheduleFields}
             </div>
           </>
         ) : (
           <>
             <label>
-              Native language
+              Language for explanations
               <input
                 value={form.nativeLanguage}
                 maxLength={40}
@@ -878,41 +908,26 @@ function Profile({
                 }
               />
             </label>
-            <div className="form-grid">
-              <label>
-                English level
-                <select
-                  value={form.englishLevel}
-                  onChange={(e) =>
-                    setForm({
-                      ...form,
-                      englishLevel: e.target.value as Settings["englishLevel"],
-                    })
-                  }
-                >
-                  {profileLevels.map((v) => (
-                    <option key={v} value={v}>
-                      {v === "unknown" ? "I’m not sure yet" : v}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                Daily goal
-                <select
-                  value={form.dailyGoal}
-                  onChange={(e) =>
-                    setForm({ ...form, dailyGoal: Number(e.target.value) })
-                  }
-                >
-                  {profileMinutes.map((v) => (
-                    <option key={v} value={v}>
-                      {v} minutes
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
+            <p className="helper">
+              Your level is estimated gradually from your conversations. It is a
+              provisional writing estimate, not a language certificate.
+            </p>
+            <label>
+              Telegram replies
+              <select
+                value={form.replyMode || "voice"}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    replyMode: e.target.value as "text" | "voice",
+                  })
+                }
+              >
+                <option value="text">Text messages</option>
+                <option value="voice">Voice messages</option>
+              </select>
+            </label>
+            {scheduleFields}
             <label>
               Why you’re learning English
               <select
@@ -940,8 +955,8 @@ function Profile({
               />
             </label>
             <p className="helper">
-              Time zone: {form.timezone}. Used to count your practice days. Your
-              goal in minutes is a target; study time is not tracked yet.
+              Interests are optional. Your coach also learns what you enjoy from
+              your conversations.
             </p>
           </>
         )}

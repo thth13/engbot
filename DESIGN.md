@@ -46,7 +46,7 @@ Shared Button, Empty and Meter in `src/components/ui.tsx`; shared heading, filte
 
 ## Content and data honesty
 
-No sample stats in authenticated UI. Level comes from self-report, not an inferred CEFR result. Accuracy means messages without detected mistakes. Skill mastery means review stage, not language proficiency. Goal minutes are a preference, not tracked study time.
+No sample stats in authenticated UI. Level is a provisional writing estimate from learner messages, shown as estimated; no certified CEFR or all-skills claim. Accuracy means messages without detected mistakes. Skill mastery means review stage, not language proficiency. Legacy goal minutes remain in stored profiles for compatibility but are no longer collected or displayed.
 
 ## Verification
 
@@ -54,8 +54,12 @@ Static audit artifact: `docs/premium-audit.json`. Runtime, responsive screenshot
 
 ## Telegram conversation interface
 
-Telegram owns the native message and inline-button appearance. Bot onboarding uses short English questions, one persisted step at a time, native callback buttons and Back. Interests accept free text as well as topic presets. Settings share the core schema with the web profile. Ordinary chat replies and daily conversation starters have no website button; explicit app/section commands retain navigation. Conversation prompts use English at the learner's level and explanations use the saved native language.
+Telegram owns the native message and inline-button appearance. Bot onboarding uses short English questions, one persisted step at a time, native callback buttons and Back. Onboarding asks explanation language, learning goal, reply format and daily conversation time in India (Asia/Kolkata). Interests are learned from conversation; optional manual interests remain in the web profile. Settings share the core schema with the web profile. Ordinary chat replies and daily conversation starters have no website button; explicit app/section commands retain navigation. Conversation prompts use English at the learner's level and explanations use the saved native language.
 
 ## Administration
 
 `/uzerz` is a public, read-only data workspace with a standalone main-content layout; Telegram authentication is not required. It reuses the pink table-header tint, panel, filter buttons, native OS-owned selects and shared pagination. Wide semantic tables own horizontal overflow and a bounded vertical scroller; the page keeps document scrolling. Full long values expand in place. Registration and other timestamps include the year and time and are explicitly labeled UTC.
+
+## Conversation preferences
+
+Reuse Profile, OnboardingChoices, LanguageSelect and native labeled selects without new visual tokens. Web onboarding has four steps: explanation language, learning goal, Telegram reply format, schedule in India Standard Time (Asia/Kolkata). Telegram also has four steps; time zone is fixed and is not collected. Reply format applies to ordinary replies, first conversations and daily starters; service messages remain text. Legacy profiles retain voice replies until changed. Voice retains transcript and text fallback. Web chat remains text. Learned interests and provisional level are stored separately from manual preferences.
