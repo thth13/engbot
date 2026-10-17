@@ -1,5 +1,10 @@
 import { database } from "@engbot/core/db";
-import { DAY, PREMIUM_DAYS, PREMIUM_STARS } from "@engbot/core/billing";
+import {
+  DAY,
+  PREMIUM_DAYS,
+  PREMIUM_PLANS,
+  type PremiumDays,
+} from "@engbot/core/billing";
 import { HttpError } from "@engbot/core/errors";
 import { telegramCall } from "./api";
 
@@ -10,35 +15,54 @@ export interface Payment {
   telegram_payment_charge_id: string;
 }
 
-const payload = (userId: string) => `premium:30:v1:${userId}`;
+const payload = (userId: string, days: PremiumDays) =>
+  `premium:${days}:v1:${userId}`;
+
+function paymentPlan(
+  userId: string,
+  payment: Omit<Payment, "telegram_payment_charge_id">,
+) {
+  return PREMIUM_PLANS.find(
+    (plan) =>
+      payment.currency === "XTR" &&
+      payment.total_amount === plan.stars &&
+      payment.invoice_payload === payload(userId, plan.days),
+  );
+}
 
 export function validPayment(
   userId: string,
   payment: Omit<Payment, "telegram_payment_charge_id">,
 ) {
-  return (
-    payment.currency === "XTR" &&
-    payment.total_amount === PREMIUM_STARS &&
-    payment.invoice_payload === payload(userId)
-  );
+  return !!paymentPlan(userId, payment);
 }
 
-export async function sendPremiumInvoice(userId: string, chatId: number) {
+export async function sendPremiumInvoice(
+  userId: string,
+  chatId: number,
+  days: PremiumDays = PREMIUM_DAYS,
+) {
+  const plan = PREMIUM_PLANS.find((plan) => plan.days === days);
+  if (!plan)
+    throw new HttpError(
+      400,
+      "Unknown Premium plan. Send /premium to choose a plan.",
+    );
   await telegramCall("sendInvoice", {
     chat_id: chatId,
-    title: "EngBot Premium · 30 days",
-    description:
-      "30 days of English conversations and practice. One-time payment; no automatic renewal. Up to 100 AI requests per day.",
-    payload: payload(userId),
+    title: `EngBot Premium · ${plan.days} days`,
+    description: `${plan.days} days of English conversations and practice. One-time payment; no automatic renewal. Up to 100 AI requests per day.`,
+    payload: payload(userId, plan.days),
     provider_token: "",
     currency: "XTR",
-    prices: [{ label: "Premium · 30 days", amount: PREMIUM_STARS }],
+    prices: [{ label: `Premium · ${plan.days} days`, amount: plan.stars }],
     start_parameter: "premium",
   });
 }
 
 export async function acceptPayment(userId: string, payment: Payment) {
-  if (!validPayment(userId, payment))
+  const plan = paymentPlan(userId, payment);
+  if (!plan)
     throw new HttpError(
       400,
       "The payment details do not match this purchase. Please use /paysupport.",
@@ -63,7 +87,7 @@ export async function acceptPayment(userId: string, payment: Payment) {
       const now = new Date();
       until = new Date(
         Math.max(now.getTime(), user.premiumUntil?.getTime() || 0) +
-          PREMIUM_DAYS * DAY,
+          plan.days * DAY,
       );
       await db.payments.insertOne(
         {

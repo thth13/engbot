@@ -23,6 +23,9 @@ import {
   hasPremium,
   trialEnded,
   premiumReply,
+  premiumOptionsReply,
+  PREMIUM_PLANS,
+  PREMIUM_PRICING,
   reserveTrialMessage,
 } from "@engbot/core/billing";
 import { acceptPayment, sendPremiumInvoice, validPayment } from "./payments";
@@ -121,7 +124,7 @@ async function onboardingCompleteReply(
   return {
     voice: user.settings?.replyMode !== "text",
     introText:
-      `All set! ✅${!hasPremium(user) ? "\n\nYour trial lasts 3 days from registration and includes 10 messages per day. After that, Premium costs 250 Stars for 30 days." : ""}\n\n` +
+      `All set! ✅${!hasPremium(user) ? `\n\nYour trial lasts 3 days from registration and includes 10 messages per day. After that, Premium costs ${PREMIUM_PRICING}. Send /premium to choose a plan.` : ""}\n\n` +
       (user.bot?.enabled
         ? `I’ll message you every day at ${user.bot.hour}:00 (${user.settings!.timezone}). Use /pause to turn off daily messages.`
         : "Daily messages are off. Use /resume to turn them on."),
@@ -145,12 +148,20 @@ async function makeReply(
   }
   if (
     command === "/premium" ||
-    callback === "premium:buy" ||
     (command === "/start" && text?.split(/\s+/)[1] === "premium")
   ) {
-    await sendPremiumInvoice(user._id, user.bot!.chatId);
+    return premiumOptionsReply();
+  }
+  if (callback === "premium:buy" || callback?.startsWith("premium:buy:")) {
+    const plan = PREMIUM_PLANS.find(
+      (plan) =>
+        callback === `premium:buy:${plan.days}` ||
+        (callback === "premium:buy" && plan.days === 30),
+    );
+    if (!plan) return premiumOptionsReply();
+    await sendPremiumInvoice(user._id, user.bot!.chatId, plan.days);
     return {
-      text: "Use the invoice above to activate Premium for 30 days. If Premium is already active, the purchase adds 30 days to your current access.",
+      text: `Use the invoice above to activate Premium for ${plan.days} days. If Premium is already active, the purchase adds ${plan.days} days to your current access.`,
     };
   }
   if (command === "/pause") {
@@ -213,7 +224,7 @@ async function makeReply(
     };
   } else if (command && !["/start", "/topic"].includes(command)) {
     return {
-      text: "/topic — new topic\n/premium — buy 30 days of Premium\n/paysupport — payment help\n/settings — profile and conversation time\n/pause — turn off daily topics\n/resume — turn on daily topics\n/app — open the app\n\nOr just message me in English.",
+      text: "/topic — new topic\n/premium — choose a Premium plan\n/paysupport — payment help\n/settings — profile and conversation time\n/pause — turn off daily topics\n/resume — turn on daily topics\n/app — open the app\n\nOr just message me in English.",
     };
   } else if (!command) {
     if (voice) {
@@ -410,7 +421,11 @@ export async function telegramUpdate(body: unknown) {
       { _id: id },
       { $set: { status: "sent" }, $unset: { leaseUntil: "" } },
     );
-    if (callback?.message && callback.data !== "premium:buy")
+    if (
+      callback?.message &&
+      callback.data !== "premium:buy" &&
+      !callback.data?.startsWith("premium:buy:")
+    )
       await telegramCall("editMessageReplyMarkup", {
         chat_id: target.id,
         message_id: callback.message.message_id,
