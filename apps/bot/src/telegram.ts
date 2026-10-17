@@ -12,6 +12,12 @@ import {
   onboardingReply,
 } from "./onboarding";
 import { telegramCall, TelegramDeliveryError } from "./api";
+import { sendBotReply, showVoiceText } from "./voice";
+import {
+  transcribeVoice,
+  validateVoice,
+  type IncomingVoice,
+} from "./transcription";
 import {
   AccessError,
   hasPremium,
@@ -29,6 +35,13 @@ const updateSchema = z.object({
       chat,
       from: sender,
       text: z.string().optional(),
+      voice: z
+        .object({
+          file_id: z.string(),
+          duration: z.number().nonnegative(),
+          file_size: z.number().nonnegative().optional(),
+        })
+        .optional(),
       successful_payment: z
         .object({
           currency: z.string(),
@@ -91,6 +104,7 @@ async function makeReply(
   command?: string,
   text?: string,
   callback?: string,
+  voice?: IncomingVoice,
 ): Promise<BotReply> {
   const db = await database();
   if (command === "/paysupport") {
@@ -170,9 +184,22 @@ async function makeReply(
       text: "/topic — new topic\n/premium — buy 30 days of Premium\n/paysupport — payment help\n/settings — profile and conversation time\n/pause — turn off daily topics\n/resume — turn on daily topics\n/app — open the app\n\nOr just message me in English.",
     };
   } else if (!command) {
+    if (voice) {
+      validateVoice(voice);
+      await reserveTrialMessage(user._id, `telegram:${id}`);
+      const saved = await db.updates.findOne({ _id: id });
+      text = saved?.transcription;
+      if (!text) {
+        text = await transcribeVoice(voice);
+        await db.updates.updateOne(
+          { _id: id },
+          { $set: { transcription: text } },
+        );
+      }
+    }
     if (!text)
       return {
-        text: "I can only read text for now. Write in English or send /topic and I’ll start a conversation.",
+        text: "Send text or a voice message in English, or send /topic and I’ll start a conversation.",
       };
     if (text.length > 3000)
       return {
@@ -180,6 +207,7 @@ async function makeReply(
       };
     const result = await analyze(user, text, `telegram:${id}`);
     return {
+      voice: true,
       text: (
         result.reply +
         result.mistakes
@@ -198,6 +226,7 @@ async function makeReply(
     startConversation: true,
   });
   return {
+    voice: true,
     text: completed
       ? `All set! ${!hasPremium(user) ? "Your trial lasts 3 days from registration and includes 10 messages per day. After that, Premium costs 250 Stars for 30 days.\n\n" : ""}${user.bot?.enabled ? `I’ll message you at ${user.bot.hour}:00 (${user.settings!.timezone}). Use /pause to turn it off.` : "Daily topics are off. Use /resume to turn them on."}\n\n${starter}`
       : starter,
@@ -234,7 +263,7 @@ export async function telegramUpdate(body: unknown) {
   const id = String(update.update_id);
   const old = await db.updates.findOne({ _id: id });
   if (old?.status === "sent") return;
-  const leaseUntil = new Date(Date.now() + 90000);
+  const leaseUntil = new Date(Date.now() + 300000);
   if (!old) {
     try {
       await db.updates.insertOne({ _id: id, status: "processing", leaseUntil });
@@ -260,6 +289,19 @@ export async function telegramUpdate(body: unknown) {
   }
   const stopTyping = startTyping(target.id);
   try {
+    // Reading an existing transcript bypasses onboarding, AI and trial limits.
+    if (callback?.message && callback.data?.startsWith("voice:text:")) {
+      await showVoiceText(
+        target.id,
+        callback.message.message_id,
+        callback.data,
+      );
+      await db.updates.updateOne(
+        { _id: id },
+        { $set: { status: "sent" }, $unset: { leaseUntil: "" } },
+      );
+      return;
+    }
     const uid = await ensureUser(String(from.id), from.first_name);
     await db.users.updateOne(
       { _id: uid },
@@ -287,7 +329,7 @@ export async function telegramUpdate(body: unknown) {
             : "💬 Message sent to the bot",
         source: "Telegram Bot",
         user,
-        details: `✉️ Message: ${text || "[Non-text message]"}`,
+        details: `✉️ Message: ${text || (update.message.voice ? "[Voice message]" : "[Non-text message]")}`,
       });
     let payload = old?.payload;
     if (!payload) {
@@ -297,13 +339,17 @@ export async function telegramUpdate(body: unknown) {
           : !hasPremium(user) && trialEnded(user) && old?.startConversation
             ? premiumReply()
             : old?.startConversation
-              ? { text: await conversationStarter(user, `telegram:${id}`) }
+              ? {
+                  text: await conversationStarter(user, `telegram:${id}`),
+                  voice: true,
+                }
               : await makeReply(
                   user,
                   id,
                   command,
                   text,
                   callback ? callback.data || "" : undefined,
+                  update.message?.voice,
                 );
       } catch (error) {
         if (!(error instanceof HttpError)) throw error;
@@ -319,8 +365,8 @@ export async function telegramUpdate(body: unknown) {
         { $set: { status: "ready", payload } },
       );
     }
+    await sendBotReply(target.id, payload, `telegram:${id}`);
     stopTyping();
-    await telegramCall("sendMessage", { chat_id: target.id, ...payload });
     await db.starters.updateOne(
       { _id: `telegram:${id}` },
       { $set: { sentAt: new Date() } },

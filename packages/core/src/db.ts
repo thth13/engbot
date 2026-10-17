@@ -72,10 +72,18 @@ export async function database() {
       createdAt: Date;
       sentAt?: Date;
     }>("conversationStarters"),
+    voiceReplies: db.collection<{
+      _id: string;
+      chatId: number;
+      text: string;
+      fileId?: string;
+      createdAt: Date;
+    }>("voiceReplies"),
     updates: db.collection<{
       _id: string;
       status: string;
       reply?: string;
+      transcription?: string;
       startConversation?: boolean;
       payload?: import("./schema").BotReply;
       leaseUntil?: Date;

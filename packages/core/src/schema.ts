@@ -98,6 +98,7 @@ export interface BotDraft {
 }
 export interface BotReply {
   text: string;
+  voice?: boolean;
   reply_markup?: {
     inline_keyboard: {
       text: string;

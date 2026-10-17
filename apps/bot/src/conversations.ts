@@ -2,6 +2,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import { database } from "@engbot/core/db";
 import { conversationStarter, dayKey } from "@engbot/core/learning";
 import { telegramCall, TelegramDeliveryError } from "./api";
+import { sendBotReply } from "./voice";
 import {
   DAY,
   TRIAL_DAYS,
@@ -133,10 +134,7 @@ export async function runConversations(signal: AbortSignal) {
               { $set: { "bot.lastPromptDay": day } },
             );
             if (!reserved.modifiedCount) continue;
-            await telegramCall("sendMessage", {
-              chat_id: user.bot!.chatId,
-              text,
-            });
+            await sendBotReply(user.bot!.chatId, { text, voice: true }, id);
             await db.starters.updateOne(
               { _id: id },
               { $set: { sentAt: new Date() } },

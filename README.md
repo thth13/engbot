@@ -6,7 +6,7 @@ Telegram-бот и Mini App для английского, который пре
 
 - Telegram Mini App authentication: проверка initData на сервере, httpOnly session cookie.
 - Onboarding: язык, уровень, цель, интересы, ежедневная цель, часовой пояс.
-- Текстовый разговор в боте и Web App; structured AI corrections; отдельная natural version.
+- Голосовые ответы в боте с кнопкой `text`, текстовый разговор в Web App; structured AI corrections; отдельная natural version.
 - Банк ошибок с повторяемостью, категориями, объяснениями и освоением.
 - Упражнения на личных ошибках и словах; проверка сервером; интервалы 0 / 1 / 3 / 7 / 14 / 30 дней.
 - Сохранение слов из разговоров, dashboard, прогресс, XP и streak.
@@ -78,9 +78,17 @@ Production: [пошаговый деплой на Vercel и Railway](docs/DEPLOY
 - [Дизайн](DESIGN.md)
 - [Контракт интерфейса](UX-CONTRACT.md)
 
-P1: голос, ежедневные задания/напоминания, сценарии и weekly reports. P2: pronunciation, расширенный placement test и социальные функции. Эти функции пока не реализованы.
+P1: ежедневные задания/напоминания, сценарии и weekly reports. P2: pronunciation, расширенный placement test и социальные функции. Эти функции пока не реализованы.
 
 ### Conversations in Telegram
+
+Бот отправляет ответы в диалоге и новые темы голосовыми сообщениями. Кнопка `text` под голосовым отправляет текстовую версию с исправлениями в ответ на исходное сообщение, без нового AI-запроса и расходования лимита. Настройки, оплата и служебные сообщения остаются текстовыми.
+
+После настройки профиля пользователь может отправлять текст или голосовые до 3 минут и 10 МБ. Голос распознаётся и передаётся в обычный диалог с исправлениями; расшифровка сохраняется для повторной обработки. Распознавание и ответ используют один слот общего лимита сообщений. При ошибке бот предлагает повторить запись или написать текст. Настройка профиля по-прежнему использует кнопки и текстовые поля.
+
+Распознавание использует существующий `OPENAI_API_KEY` и `STT_MODEL` (по умолчанию `gpt-4o-mini-transcribe`), согласно [OpenAI Transcriptions API](https://developers.openai.com/api/reference/resources/audio/subresources/transcriptions/methods/create). Оценка произношения не выполняется: исправления строятся по распознанному тексту.
+
+Озвучивание использует существующий `OPENAI_API_KEY` и Speech API: `TTS_MODEL` (по умолчанию `gpt-4o-mini-tts`), `TTS_VOICE` (по умолчанию `coral`). При сбое синтеза бот отправляет текст. Тексты сохраняются в MongoDB `voiceReplies`, аудио — в Telegram; новые индексы не нужны. Технические контракты: [OpenAI Speech API](https://developers.openai.com/api/reference/resources/audio/subresources/speech/methods/create), [Telegram sendVoice](https://core.telegram.org/bots/api#sendvoice).
 
 `/start` and `/settings` configure the learner profile with inline buttons. After setup the coach asks the first question. `/topic` starts a fresh conversation; `/pause` and `/resume` control daily topics. Users choose a timezone and 09:00, 13:00 or 19:00, or disable daily topics. Existing web users can run `/start` to configure this in the bot.
 

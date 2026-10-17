@@ -6,14 +6,15 @@ export class TelegramDeliveryError extends Error {
     super(`Telegram delivery failed (${code})`);
   }
 }
-export async function telegramCall(method: string, body: object) {
+export async function telegramCall(method: string, body: object | FormData) {
+  const multipart = body instanceof FormData;
   const response = await fetch(
     `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/${method}`,
     {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: multipart ? undefined : { "content-type": "application/json" },
       signal: AbortSignal.timeout(15000),
-      body: JSON.stringify(body),
+      body: multipart ? body : JSON.stringify(body),
     },
   );
   const result = await response.json();
