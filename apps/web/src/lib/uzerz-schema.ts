@@ -17,6 +17,17 @@ const review: AdminColumn[] = [
 ];
 export const adminTables: AdminTable[] = [
   {
+    key: "trialUsage",
+    label: "Trial usage",
+    sort: "sortAt",
+    search: ["userId", "username", "name", "day"],
+    columns: [
+      { key: "username", label: "Username" },
+      { key: "usage", label: "Messages used · local day" },
+      { key: "lastMessageAt", label: "Last message", date: true },
+    ],
+  },
+  {
     key: "users",
     label: "Users",
     sort: "createdAt",

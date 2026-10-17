@@ -88,7 +88,10 @@ export async function reserveTrialMessage(userId: string, requestId: string) {
         throw new AccessError(true);
       await db.trialUsage.updateOne(
         { _id: key },
-        { $addToSet: { requests: requestId } },
+        {
+          $addToSet: { requests: requestId },
+          $currentDate: { lastMessageAt: true },
+        },
         { upsert: true, session },
       );
     });

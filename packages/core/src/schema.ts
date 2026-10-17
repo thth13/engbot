@@ -121,6 +121,7 @@ export interface BotReply {
 export interface User {
   _id: string;
   name: string;
+  username?: string | null;
   settings: Settings | null;
   learnerProfile?: z.infer<typeof learnerProfileSchema> & { updatedAt: Date };
   xp: number;

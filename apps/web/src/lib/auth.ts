@@ -39,9 +39,10 @@ export async function telegramLogin(initData: string) {
     .object({
       id: z.number().int().positive(),
       first_name: z.string().max(200),
+      username: z.string().max(200).optional(),
     })
     .parse(JSON.parse(data.get("user") || "{}"));
-  const id = await ensureUser(String(user.id), user.first_name);
+  const id = await ensureUser(String(user.id), user.first_name, user.username);
   const jwt = await new SignJWT({})
     .setProtectedHeader({ alg: "HS256" })
     .setSubject(id)

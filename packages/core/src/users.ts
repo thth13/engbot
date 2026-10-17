@@ -1,11 +1,12 @@
 import { database } from "./db";
 import { HttpError } from "./errors";
 import { requireAccess } from "./billing";
-export async function ensureUser(id: string, name: string) {
+export async function ensureUser(id: string, name: string, username?: string) {
   const { users } = await database();
   await users.updateOne(
     { _id: id },
     {
+      $set: { username: username ?? null },
       $setOnInsert: {
         name,
         settings: null,

@@ -1,5 +1,6 @@
 import "server-only";
 import { z } from "zod";
+import type { Document } from "mongodb";
 import { database } from "@engbot/core/db";
 import { HttpError } from "@engbot/core/errors";
 import { adminTables, type AdminData } from "./uzerz-schema";
@@ -19,6 +20,60 @@ export async function readAdminData(body: unknown): Promise<AdminData> {
   const { client: _client, ...collections } = await database();
   void _client;
   const collection = collections[table.key as keyof typeof collections];
+  const prepare: Document[] =
+    table.key === "trialUsage"
+      ? [
+          {
+            $set: {
+              userId: { $arrayElemAt: [{ $split: ["$_id", ":"] }, 0] },
+              day: { $arrayElemAt: [{ $split: ["$_id", ":"] }, 1] },
+            },
+          },
+          {
+            $lookup: {
+              from: "users",
+              localField: "userId",
+              foreignField: "_id",
+              pipeline: [{ $project: { name: 1, username: 1 } }],
+              as: "user",
+            },
+          },
+          { $set: { user: { $arrayElemAt: ["$user", 0] } } },
+          {
+            $set: {
+              name: "$user.name",
+              username: {
+                $cond: [
+                  { $ifNull: ["$user.username", false] },
+                  { $concat: ["@", "$user.username"] },
+                  { $ifNull: ["$user.name", "$userId"] },
+                ],
+              },
+              usage: {
+                $concat: [
+                  { $toString: { $size: { $ifNull: ["$requests", []] } } },
+                  " · ",
+                  "$day",
+                ],
+              },
+              // Legacy records have only a local day, not an exact timestamp.
+              sortAt: {
+                $ifNull: [
+                  "$lastMessageAt",
+                  {
+                    $convert: {
+                      input: "$day",
+                      to: "date",
+                      onError: null,
+                      onNull: null,
+                    },
+                  },
+                ],
+              },
+            },
+          },
+        ]
+      : [];
   const escaped = input.query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const match = escaped
     ? {
@@ -29,9 +84,12 @@ export async function readAdminData(body: unknown): Promise<AdminData> {
     : {};
   const [totals, counts] = await Promise.all([
     collection
-      .aggregate<{ total: number }>([{ $match: match }, { $count: "total" }], {
-        maxTimeMS: 10000,
-      })
+      .aggregate<{ total: number }>(
+        [...prepare, { $match: match }, { $count: "total" }],
+        {
+          maxTimeMS: 10000,
+        },
+      )
       .toArray(),
     Promise.all(
       Object.entries(collections).map(
@@ -52,6 +110,7 @@ export async function readAdminData(body: unknown): Promise<AdminData> {
   const rows = await collection
     .aggregate<Record<string, unknown>>(
       [
+        ...prepare,
         { $match: match },
         { $sort: { [table.sort]: direction, _id: direction } },
         { $skip: page * input.pageSize },

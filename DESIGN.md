@@ -60,6 +60,8 @@ Premium uses shared native Telegram buttons for 7 days (60 Stars) and 30 days (2
 
 ## Administration
 
+Trial usage reuses the administration table with three columns: Telegram username (fallback: saved name or ID), used quota slots with the user's local day, and last quota reservation time in Kyiv. Each row represents one user/day, newest activity first. Legacy entries have no exact time and display a dash; their local day provides approximate ordering. Username is refreshed from authenticated Telegram data; quota timestamps are written only for new reservations, not retries. Premium messages do not consume trial quota and are excluded.
+
 All administration timestamps use a 24-hour clock (00:00–23:59), owned by the shared `formatDate` formatter in `apps/web/src/components/uzerz.tsx`.
 
 `/uzerz` is a public, read-only data workspace with a standalone main-content layout; Telegram authentication is not required. It reuses the pink table-header tint, panel, filter buttons, native OS-owned selects and shared pagination. Wide semantic tables own horizontal overflow and a bounded vertical scroller; the page keeps document scrolling. Full long values expand in place. Registration and other timestamps include the year and time, use Europe/Kyiv with automatic daylight-saving adjustment, and are explicitly labeled Kyiv time. This display timezone applies only to administration; stored dates and user schedule settings retain their original meaning.

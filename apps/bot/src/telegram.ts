@@ -30,7 +30,11 @@ import {
   reserveTrialMessage,
 } from "@engbot/core/billing";
 import { acceptPayment, sendPremiumInvoice, validPayment } from "./payments";
-const sender = z.object({ id: z.number(), first_name: z.string() });
+const sender = z.object({
+  id: z.number(),
+  first_name: z.string(),
+  username: z.string().optional(),
+});
 const chat = z.object({ id: z.number(), type: z.string() });
 const updateSchema = z.object({
   update_id: z.number().int(),
@@ -355,7 +359,11 @@ export async function telegramUpdate(body: unknown) {
       );
       return;
     }
-    const uid = await ensureUser(String(from.id), from.first_name);
+    const uid = await ensureUser(
+      String(from.id),
+      from.first_name,
+      from.username,
+    );
     await db.users.updateOne(
       { _id: uid },
       { $set: { "bot.chatId": target.id, "bot.lastContactAt": new Date() } },

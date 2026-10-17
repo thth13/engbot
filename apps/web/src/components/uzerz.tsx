@@ -21,7 +21,6 @@ const formatDate = (value: string) => {
 const systemCollections: Record<string, string> = {
   eventLimits: "Event logging limits",
   limits: "Daily AI limits",
-  trialUsage: "Trial usage",
   telegramInbox: "Telegram inbox",
   notifications: "Admin notifications",
   notificationLimits: "Notification limits",
@@ -203,8 +202,10 @@ export function Uzerz() {
           <div>
             <h2 id="admin-table-title">{table.label}</h2>
             <p className="helper">
-              {view.direction === "newest" ? "Newest first" : "Oldest first"} ·
-              Scroll horizontally to see every column.
+              {view.direction === "newest" ? "Newest first" : "Oldest first"} ·{" "}
+              {table.key === "trialUsage"
+                ? "One row per user and local day. Used trial messages only; Premium is excluded. Older records may have no message time."
+                : "Scroll horizontally to see every column."}
             </p>
           </div>
           <Button className="secondary small" busy={busy} onClick={refresh}>
@@ -225,7 +226,7 @@ export function Uzerz() {
                   value={query}
                   maxLength={150}
                   placeholder={
-                    table.key === "users"
+                    table.key === "users" || table.key === "trialUsage"
                       ? "Name or Telegram ID"
                       : "Telegram ID or table text"
                   }

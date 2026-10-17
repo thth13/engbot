@@ -41,9 +41,11 @@ export async function database() {
     exercises: db.collection<Exercise>("exercises"),
     activity: db.collection<Activity>("activity"),
     limits: db.collection<{ _id: string; count: number }>("limits"),
-    trialUsage: db.collection<{ _id: string; requests: string[] }>(
-      "trialUsage",
-    ),
+    trialUsage: db.collection<{
+      _id: string;
+      requests: string[];
+      lastMessageAt?: Date;
+    }>("trialUsage"),
     voiceUsage: db.collection<{
       _id: string;
       seconds: number;
