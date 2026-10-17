@@ -127,7 +127,7 @@ async function onboardingCompleteReply(
     { upsert: true },
   );
   return {
-    voice: user.settings?.replyMode !== "text",
+    voice: false,
     introText:
       `All set! ✅${!hasPremium(user) ? `\n\nYour trial lasts 3 days from registration and includes 10 messages per day. After that, Premium costs ${PREMIUM_PRICING}. Send /premium to choose a plan.` : ""}\n\n` +
       (user.bot?.enabled
@@ -267,8 +267,8 @@ async function makeReply(
     const result = await analyze(user, text, `telegram:${id}`);
     return {
       voice: user.settings?.replyMode !== "text",
-      text: (
-        result.reply +
+      text: result.reply.slice(0, 4000),
+      feedbackText: (
         result.mistakes
           .slice(0, 3)
           .map((m) => `\n\n${m.wrong} → ${m.correct}\n${m.explanation}`)
@@ -276,7 +276,7 @@ async function makeReply(
         (result.naturalVersion && result.naturalVersion !== result.corrected
           ? `\n\nMore natural: ${result.naturalVersion}`
           : "")
-      ).slice(0, 4000),
+      ).trim().slice(0, 4000),
     };
   }
   const completed = await db.updates.findOne({

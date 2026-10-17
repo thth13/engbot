@@ -72,15 +72,19 @@ export async function sendBotReply(
   reply: BotReply,
   sourceId: string,
 ) {
-  const { voice, text, reply_markup } = reply;
+  const { voice, text, feedbackText, reply_markup } = reply;
+  const sendText = (content = text) =>
+    telegramCall("sendMessage", {
+      chat_id: chatId,
+      text: [content, feedbackText].filter(Boolean).join("\n\n").slice(0, 4000),
+      reply_markup,
+    });
   if (!voice) {
-    return telegramCall("sendMessage", { chat_id: chatId, text, reply_markup });
+    return sendText();
   }
 
   const db = await database();
   const user = await db.users.findOne({ "bot.chatId": chatId });
-  const sendText = (content = text) =>
-    telegramCall("sendMessage", { chat_id: chatId, text: content, reply_markup });
   if (!user) return sendText();
   const quotaKey = voiceUsageKey(user);
   const requestId = `outgoing:${sourceId}`;
@@ -107,11 +111,7 @@ export async function sendBotReply(
       duration = speech.duration;
     } catch {
       console.error("Voice generation unavailable; delivering text instead");
-      return telegramCall("sendMessage", {
-        chat_id: chatId,
-        text: saved.text,
-        reply_markup,
-      });
+      return sendText(saved.text);
     }
   }
   if (!duration || !(await reserveVoiceTime(quotaKey, requestId, duration)))
@@ -135,6 +135,12 @@ export async function sendBotReply(
     await db.voiceReplies
       .updateOne({ _id: id }, { $set: { fileId: sent.voice.file_id, duration } })
       .catch(() => console.error("Could not cache Telegram voice file"));
+  }
+  if (feedbackText) {
+    await telegramCall("sendMessage", {
+      chat_id: chatId,
+      text: feedbackText,
+    });
   }
   return sent;
 }
