@@ -60,3 +60,10 @@ Product analytics uses `@engbot/core/events` and POST `/api/telemetry`, independ
 
 - Onboarding v3 invalidates older bot drafts and web drafts to prevent old step numbers from selecting a different answer. Legacy profiles remain compatible. Schedule is saved atomically with the web profile and used by the same Telegram scheduler.
 - AI learner profiles are persisted in the message transaction without extra requests. A level estimate requires at least three messages of eight words each and eighty words total in recent history, plus the model judging the evidence sufficient. Interests are non-sensitive explicitly stated preferences, separate from manual interests.
+
+
+## Administration analytics
+
+- Analytics is a read-only tab within Uzerz, using the same request cancellation, timeout, refresh, error recovery, order and pagination controls. It has no search or date filter; retention covers the last 30 completed Kyiv calendar days, including days with no messages.
+- Onboarding completion counts users with saved non-null settings, matching both onboarding completion paths and including legacy profiles without telemetry. Message thresholds count distinct users with at least 1 or at least 11 saved messages across all dates and plans, independently of onboarding status.
+- A return date's retention is the intersection of that day's and the previous day's messaging users divided by the previous day's messaging users. A zero denominator is undefined (dash), not 0%. Activity is saved learner messages, including voice transcriptions; bot replies, visits and unsaved requests do not count. The server aggregates user IDs without returning them to the analytics client.

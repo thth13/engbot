@@ -2416,3 +2416,11 @@ input[type="radio"] {
     flex-wrap: wrap;
   }
 }
+
+
+.admin-analytics-summary {
+  margin: 0 0 24px;
+}
+.admin-analytics-summary .admin-system-counts {
+  margin-bottom: 20px;
+}

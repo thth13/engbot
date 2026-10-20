@@ -69,6 +69,7 @@ export function Uzerz() {
   const input = useRef<HTMLInputElement>(null);
   const dateToInput = useRef<HTMLInputElement>(null);
   const table = adminTables.find((t) => t.key === view.table)!;
+  const isAnalytics = table.key === "analytics";
   const hasDateFilter =
     table.key === "trialUsage" && Boolean(view.dateFrom || view.dateTo);
 
@@ -227,7 +228,7 @@ export function Uzerz() {
             }}
           >
             {item.label}
-            {data && (
+            {data && data.counts[item.key] !== undefined && (
               <span className="admin-count">
                 {formatNumber(data.counts[item.key] || 0)}
               </span>
@@ -244,9 +245,11 @@ export function Uzerz() {
             <h2 id="admin-table-title">{table.label}</h2>
             <p className="helper">
               {view.direction === "newest" ? "Newest first" : "Oldest first"} ·{" "}
-              {table.key === "trialUsage"
-                ? `One row per user. Saved user messages across all plans · ${hasDateFilter ? `${view.dateFrom || "Beginning"} – ${view.dateTo || "Present"}` : "All dates"}. Dates use Kyiv time.`
-                : "Scroll horizontally to see every column."}
+              {isAnalytics
+                ? "Daily retention for the last 30 completed days. Today is excluded."
+                : table.key === "trialUsage"
+                  ? `One row per user. Saved user messages across all plans · ${hasDateFilter ? `${view.dateFrom || "Beginning"} – ${view.dateTo || "Present"}` : "All dates"}. Dates use Kyiv time.`
+                  : "Scroll horizontally to see every column."}
             </p>
           </div>
           <Button className="secondary small" busy={busy} onClick={refresh}>
@@ -254,46 +257,48 @@ export function Uzerz() {
           </Button>
         </div>
         <div className="admin-toolbar">
-          <form noValidate onSubmit={search} className="admin-search">
-            <label htmlFor="admin-search">
-              Search {table.label.toLowerCase()}
-            </label>
-            <div className="admin-search-controls">
-              <div className="admin-search-input">
-                <Search size={17} aria-hidden="true" />
-                <input
-                  ref={input}
-                  id="admin-search"
-                  value={query}
-                  maxLength={150}
-                  placeholder={
-                    table.key === "users" || table.key === "trialUsage"
-                      ? "Name or Telegram ID"
-                      : "Telegram ID or table text"
-                  }
-                  onChange={(event) => {
-                    setQuery(event.target.value);
-                    if (!event.target.value) {
-                      setCommittedQuery("");
-                      changeView({});
+          {!isAnalytics && (
+            <form noValidate onSubmit={search} className="admin-search">
+              <label htmlFor="admin-search">
+                Search {table.label.toLowerCase()}
+              </label>
+              <div className="admin-search-controls">
+                <div className="admin-search-input">
+                  <Search size={17} aria-hidden="true" />
+                  <input
+                    ref={input}
+                    id="admin-search"
+                    value={query}
+                    maxLength={150}
+                    placeholder={
+                      table.key === "users" || table.key === "trialUsage"
+                        ? "Name or Telegram ID"
+                        : "Telegram ID or table text"
                     }
-                  }}
-                />
-                {query && (
-                  <button
-                    type="button"
-                    aria-label="Clear search"
-                    onClick={clearSearch}
-                  >
-                    <X size={17} />
-                  </button>
-                )}
+                    onChange={(event) => {
+                      setQuery(event.target.value);
+                      if (!event.target.value) {
+                        setCommittedQuery("");
+                        changeView({});
+                      }
+                    }}
+                  />
+                  {query && (
+                    <button
+                      type="button"
+                      aria-label="Clear search"
+                      onClick={clearSearch}
+                    >
+                      <X size={17} />
+                    </button>
+                  )}
+                </div>
+                <Button type="submit" className="secondary small" busy={busy}>
+                  Search
+                </Button>
               </div>
-              <Button type="submit" className="secondary small" busy={busy}>
-                Search
-              </Button>
-            </div>
-          </form>
+            </form>
+          )}
           <label className="admin-select">
             Order
             <select
@@ -382,6 +387,37 @@ export function Uzerz() {
               </p>
             )}
           </form>
+        )}
+        {isAnalytics && (
+          <div className="admin-analytics-summary">
+            <p className="helper">
+              All-time counts across all plans. Onboarding completed means a
+              saved profile. Activity means at least one saved user message,
+              including transcribed voice messages. Bot replies, page visits and
+              unsaved requests are excluded.
+            </p>
+            <dl className="admin-system-counts" aria-busy={busy}>
+              {(
+                [
+                  ["onboarded", "Completed onboarding"],
+                  ["messaged", "Sent at least 1 message"],
+                  ["elevenPlus", "Sent 11+ messages"],
+                ] as const
+              ).map(([key, label]) => (
+                <div key={key}>
+                  <dt>{label}</dt>
+                  <dd>
+                    {data?.analytics ? formatNumber(data.analytics[key]) : "—"}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+            <p className="helper">
+              Daily retention = users who messaged on both the previous day and
+              the return date ÷ users who messaged on the previous day. Days use
+              Kyiv time. A dash means no users were active on the previous day.
+            </p>
+          </div>
         )}
         <div className="admin-table-frame" aria-busy={busy}>
           {busy ? (
@@ -474,7 +510,7 @@ export function Uzerz() {
           }}
         />
       </section>
-      {data && !busy && (
+      {data && !busy && !isAnalytics && (
         <section className="panel" aria-labelledby="admin-system-title">
           <h2 id="admin-system-title">System collections</h2>
           <p className="helper">

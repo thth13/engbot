@@ -21,6 +21,19 @@ const review: AdminColumn[] = [
 ];
 export const adminTables: AdminTable[] = [
   {
+    key: "analytics",
+    label: "Analytics",
+    sort: "day",
+    search: [],
+    columns: [
+      { key: "day", label: "Return date · Kyiv" },
+      { key: "previousActive", label: "Active previous day" },
+      { key: "active", label: "Active on return date" },
+      { key: "returned", label: "Returned from previous day" },
+      { key: "retention", label: "Daily retention" },
+    ],
+  },
+  {
     key: "trialUsage",
     label: "Trial usage",
     sort: "sortAt",
@@ -187,7 +200,13 @@ export const adminTables: AdminTable[] = [
     ],
   },
 ];
+export interface AdminAnalytics {
+  onboarded: number;
+  messaged: number;
+  elevenPlus: number;
+}
 export interface AdminData {
+  analytics?: AdminAnalytics;
   rows: Record<string, string | null>[];
   total: number;
   page: number;

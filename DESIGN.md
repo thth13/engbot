@@ -69,3 +69,6 @@ All administration timestamps use a 24-hour clock (00:00–23:59), owned by the 
 ## Conversation preferences
 
 Reuse Profile, OnboardingChoices, LanguageSelect and native labeled selects without new visual tokens. Web onboarding has four steps: explanation language, learning goal, Telegram reply format, schedule in India Standard Time (Asia/Kolkata). Telegram also has four steps; time zone is fixed and is not collected. Reply format applies to ordinary replies, first conversations and daily starters; service messages remain text. Legacy profiles retain voice replies until changed. Voice retains transcript and text fallback. Web chat remains text. Learned interests and provisional level are stored separately from manual preferences.
+
+
+Administration Analytics reuses the existing count definitions, filter buttons, semantic table and pagination. Three all-time user counts sit above a bounded daily retention table; no new palette or type styles. The tab is URL-addressable as `table=analytics`. Empty denominators show a dash, and the current incomplete Kyiv day is excluded.
