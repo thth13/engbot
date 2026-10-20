@@ -1,3 +1,7 @@
+import { z } from "zod";
+
+export const adminDateSchema = z.union([z.iso.date(), z.literal("")]);
+
 export type AdminColumn = { key: string; label: string; date?: boolean };
 export type AdminTable = {
   key: string;
@@ -20,10 +24,9 @@ export const adminTables: AdminTable[] = [
     key: "trialUsage",
     label: "Trial usage",
     sort: "sortAt",
-    search: ["userId", "username", "name", "day"],
+    search: ["userId", "username", "name"],
     columns: [
       { key: "username", label: "Username" },
-      { key: "usage", label: "Messages used · local day" },
       { key: "totalMessages", label: "Total messages" },
       { key: "lastMessageAt", label: "Last message", date: true },
     ],

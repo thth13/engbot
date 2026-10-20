@@ -3,6 +3,6 @@
   "sourceRoots": ["apps/web/src"],
   "locale": "en-US",
   "canonicalMap": "UX-CONTRACT.md",
-  "ownership": { "Select/Listbox": "native", "Date": "typed" },
+  "ownership": { "Select/Listbox": "native", "Date": "native" },
   "requiredCapabilities": ["Select/Listbox", "Form", "Scrollbar", "CRUD"]
 }

@@ -2287,7 +2287,8 @@ input[type="radio"] {
   background: var(--primary-tint);
   color: var(--primary-text);
 }
-.admin-select select {
+.admin-select select,
+.admin-select input[type="date"] {
   min-height: 40px;
   padding: 8px 12px;
   border: 1px solid var(--field-line);
@@ -2295,6 +2296,19 @@ input[type="radio"] {
   background: var(--surface);
   color: var(--ink);
   cursor: pointer;
+}
+.admin-date-filter {
+  margin-bottom: 22px;
+}
+.admin-date-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 12px;
+}
+.admin-date-controls input {
+  width: 100%;
+  min-width: 0;
 }
 .admin-table-frame {
   min-height: 320px;

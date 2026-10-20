@@ -2,7 +2,11 @@
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { LoaderCircle, Search, X } from "lucide-react";
-import { adminTables, type AdminData } from "@/lib/uzerz-schema";
+import {
+  adminDateSchema,
+  adminTables,
+  type AdminData,
+} from "@/lib/uzerz-schema";
 import { Button, Empty, Pagination } from "./ui";
 
 const formatNumber = (value: number) =>
@@ -44,11 +48,18 @@ function initialState() {
       ? Number(params.get("size"))
       : 25,
     direction: params.get("order") === "oldest" ? "oldest" : "newest",
+    dateFrom: adminDateSchema.safeParse(params.get("from")).data ?? "",
+    dateTo: adminDateSchema.safeParse(params.get("to")).data ?? "",
   };
 }
 
 export function Uzerz() {
   const [view, setView] = useState(initialState);
+  const [dates, setDates] = useState(() => ({
+    dateFrom: view.dateFrom,
+    dateTo: view.dateTo,
+  }));
+  const [dateError, setDateError] = useState("");
   const [query, setQuery] = useState("");
   const [committedQuery, setCommittedQuery] = useState("");
   const [data, setData] = useState<AdminData | null>(null);
@@ -56,14 +67,20 @@ export function Uzerz() {
   const [busy, setBusy] = useState(true);
   const [retry, setRetry] = useState(0);
   const input = useRef<HTMLInputElement>(null);
+  const dateToInput = useRef<HTMLInputElement>(null);
   const table = adminTables.find((t) => t.key === view.table)!;
+  const hasDateFilter =
+    table.key === "trialUsage" && Boolean(view.dateFrom || view.dateTo);
 
   useEffect(() => {
     const onPopState = () => {
       setData(null);
       setBusy(true);
       setError("");
-      setView(initialState());
+      const next = initialState();
+      setView(next);
+      setDates({ dateFrom: next.dateFrom, dateTo: next.dateTo });
+      setDateError("");
       setQuery("");
       setCommittedQuery("");
     };
@@ -77,6 +94,14 @@ export function Uzerz() {
     url.searchParams.set("page", String(view.page));
     url.searchParams.set("size", String(view.pageSize));
     url.searchParams.set("order", view.direction);
+    for (const [key, value] of [
+      ["from", view.dateFrom],
+      ["to", view.dateTo],
+    ]) {
+      if (view.table === "trialUsage" && value)
+        url.searchParams.set(key, value);
+      else url.searchParams.delete(key);
+    }
     window.history.replaceState(null, "", url);
     let active = true;
     const controller = new AbortController();
@@ -162,6 +187,20 @@ export function Uzerz() {
     changeView({});
     input.current?.focus();
   }
+  function applyDates(event: FormEvent) {
+    event.preventDefault();
+    if (
+      !adminDateSchema.safeParse(dates.dateFrom).success ||
+      !adminDateSchema.safeParse(dates.dateTo).success ||
+      (dates.dateFrom && dates.dateTo && dates.dateFrom > dates.dateTo)
+    ) {
+      setDateError("Choose valid dates with the end on or after the start.");
+      dateToInput.current?.focus();
+      return;
+    }
+    setDateError("");
+    changeView(dates);
+  }
 
   return (
     <div className="admin-page">
@@ -182,7 +221,9 @@ export function Uzerz() {
             onClick={() => {
               setQuery("");
               setCommittedQuery("");
-              changeView({ table: item.key });
+              setDates({ dateFrom: "", dateTo: "" });
+              setDateError("");
+              changeView({ table: item.key, dateFrom: "", dateTo: "" });
             }}
           >
             {item.label}
@@ -204,7 +245,7 @@ export function Uzerz() {
             <p className="helper">
               {view.direction === "newest" ? "Newest first" : "Oldest first"} ·{" "}
               {table.key === "trialUsage"
-                ? "One row per user and local day. Messages used counts trial quota; Total messages counts all saved user messages, including Premium. Older records may have no message time."
+                ? `One row per user. Saved user messages across all plans · ${hasDateFilter ? `${view.dateFrom || "Beginning"} – ${view.dateTo || "Present"}` : "All dates"}. Dates use Kyiv time.`
                 : "Scroll horizontally to see every column."}
             </p>
           </div>
@@ -281,6 +322,67 @@ export function Uzerz() {
             </select>
           </label>
         </div>
+        {table.key === "trialUsage" && (
+          <form noValidate onSubmit={applyDates} className="admin-date-filter">
+            <div className="admin-date-controls">
+              <label className="admin-select">
+                From · Kyiv date
+                <input
+                  type="date"
+                  value={dates.dateFrom}
+                  max={dates.dateTo || undefined}
+                  aria-invalid={Boolean(dateError)}
+                  aria-describedby={dateError ? "admin-date-error" : undefined}
+                  onChange={(event) => {
+                    setDates((current) => ({
+                      ...current,
+                      dateFrom: event.target.value,
+                    }));
+                    setDateError("");
+                  }}
+                />
+              </label>
+              <label className="admin-select">
+                To · Kyiv date
+                <input
+                  ref={dateToInput}
+                  type="date"
+                  value={dates.dateTo}
+                  min={dates.dateFrom || undefined}
+                  aria-invalid={Boolean(dateError)}
+                  aria-describedby={dateError ? "admin-date-error" : undefined}
+                  onChange={(event) => {
+                    setDates((current) => ({
+                      ...current,
+                      dateTo: event.target.value,
+                    }));
+                    setDateError("");
+                  }}
+                />
+              </label>
+              <Button type="submit" className="secondary small" busy={busy}>
+                Apply dates
+              </Button>
+              <Button
+                type="button"
+                className="secondary small"
+                disabled={!hasDateFilter && !dates.dateFrom && !dates.dateTo}
+                onClick={() => {
+                  setDates({ dateFrom: "", dateTo: "" });
+                  setDateError("");
+                  changeView({ dateFrom: "", dateTo: "" });
+                }}
+              >
+                All dates
+              </Button>
+            </div>
+            {dateError && (
+              <p id="admin-date-error" className="error" role="alert">
+                {dateError}
+              </p>
+            )}
+          </form>
+        )}
         <div className="admin-table-frame" aria-busy={busy}>
           {busy ? (
             <div className="admin-state" role="status">
@@ -298,11 +400,17 @@ export function Uzerz() {
             </div>
           ) : !data?.rows.length ? (
             <Empty
-              title={committedQuery ? "No matching records" : "No records yet"}
+              title={
+                committedQuery || hasDateFilter
+                  ? "No matching records"
+                  : "No records yet"
+              }
             >
-              {committedQuery
-                ? "Try another search or clear the search field."
-                : `Saved ${table.label.toLowerCase()} will appear here.`}
+              {hasDateFilter
+                ? "Try another date range, choose All dates or clear the search field."
+                : committedQuery
+                  ? "Try another search or clear the search field."
+                  : `Saved ${table.label.toLowerCase()} will appear here.`}
             </Empty>
           ) : (
             <div

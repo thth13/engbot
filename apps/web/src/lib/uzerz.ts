@@ -3,7 +3,7 @@ import { z } from "zod";
 import type { Document } from "mongodb";
 import { database } from "@engbot/core/db";
 import { HttpError } from "@engbot/core/errors";
-import { adminTables, type AdminData } from "./uzerz-schema";
+import { adminDateSchema, adminTables, type AdminData } from "./uzerz-schema";
 
 const querySchema = z.object({
   table: z.string().max(30),
@@ -11,12 +11,46 @@ const querySchema = z.object({
   page: z.number().int().min(0).max(1000000).default(0),
   pageSize: z.union([z.literal(10), z.literal(25), z.literal(50)]).default(25),
   direction: z.enum(["newest", "oldest"]).default("newest"),
+  dateFrom: adminDateSchema.default(""),
+  dateTo: adminDateSchema.default(""),
 });
 
 export async function readAdminData(body: unknown): Promise<AdminData> {
   const input = querySchema.parse(body);
   const table = adminTables.find((item) => item.key === input.table);
   if (!table) throw new HttpError(400, "Unknown table.");
+  const hasDateFilter =
+    table.key === "trialUsage" && Boolean(input.dateFrom || input.dateTo);
+  if (
+    hasDateFilter &&
+    input.dateFrom &&
+    input.dateTo &&
+    input.dateFrom > input.dateTo
+  )
+    throw new HttpError(
+      400,
+      "The end date must be on or after the start date.",
+    );
+  const midnight = (date: string) => ({
+    $dateFromString: { dateString: date, timezone: "Europe/Kyiv" },
+  });
+  const messageDates: Document[] = [];
+  if (input.dateFrom)
+    messageDates.push({ $gte: ["$createdAt", midnight(input.dateFrom)] });
+  if (input.dateTo)
+    messageDates.push({
+      $lt: [
+        "$createdAt",
+        {
+          $dateAdd: {
+            startDate: midnight(input.dateTo),
+            unit: "day",
+            amount: 1,
+            timezone: "Europe/Kyiv",
+          },
+        },
+      ],
+    });
   const { client: _client, ...collections } = await database();
   void _client;
   const collection = collections[table.key as keyof typeof collections];
@@ -24,11 +58,11 @@ export async function readAdminData(body: unknown): Promise<AdminData> {
     table.key === "trialUsage"
       ? [
           {
-            $set: {
-              userId: { $arrayElemAt: [{ $split: ["$_id", ":"] }, 0] },
-              day: { $arrayElemAt: [{ $split: ["$_id", ":"] }, 1] },
+            $group: {
+              _id: { $arrayElemAt: [{ $split: ["$_id", ":"] }, 0] },
             },
           },
+          { $set: { userId: "$_id" } },
           {
             $lookup: {
               from: "users",
@@ -49,27 +83,6 @@ export async function readAdminData(body: unknown): Promise<AdminData> {
                   { $ifNull: ["$user.name", "$userId"] },
                 ],
               },
-              usage: {
-                $concat: [
-                  { $toString: { $size: { $ifNull: ["$requests", []] } } },
-                  " · ",
-                  "$day",
-                ],
-              },
-              // Legacy records have only a local day, not an exact timestamp.
-              sortAt: {
-                $ifNull: [
-                  "$lastMessageAt",
-                  {
-                    $convert: {
-                      input: "$day",
-                      to: "date",
-                      onError: null,
-                      onNull: null,
-                    },
-                  },
-                ],
-              },
             },
           },
         ]
@@ -82,23 +95,78 @@ export async function readAdminData(body: unknown): Promise<AdminData> {
         })),
       }
     : {};
+  // Aggregate saved messages before counting/paging so date filters, totals and
+  // ordering all describe the same users and the same period.
+  const messages: Document[] =
+    table.key === "trialUsage"
+      ? [
+          {
+            $lookup: {
+              from: "messages",
+              localField: "userId",
+              foreignField: "userId",
+              pipeline: [
+                ...(hasDateFilter
+                  ? [{ $match: { $expr: { $and: messageDates } } }]
+                  : []),
+                {
+                  $group: {
+                    _id: null,
+                    total: { $sum: 1 },
+                    lastMessageAt: { $max: "$createdAt" },
+                  },
+                },
+              ],
+              as: "messageStats",
+            },
+          },
+          {
+            $set: {
+              totalMessages: {
+                $ifNull: [{ $arrayElemAt: ["$messageStats.total", 0] }, 0],
+              },
+              lastMessageAt: {
+                $ifNull: [
+                  { $arrayElemAt: ["$messageStats.lastMessageAt", 0] },
+                  null,
+                ],
+              },
+            },
+          },
+          { $set: { sortAt: "$lastMessageAt" } },
+          ...(hasDateFilter ? [{ $match: { totalMessages: { $gt: 0 } } }] : []),
+        ]
+      : [];
+  const filtered = [...prepare, { $match: match }, ...messages];
   const [totals, counts] = await Promise.all([
     collection
-      .aggregate<{ total: number }>(
-        [...prepare, { $match: match }, { $count: "total" }],
-        {
-          maxTimeMS: 10000,
-        },
-      )
+      .aggregate<{ total: number }>([...filtered, { $count: "total" }], {
+        maxTimeMS: 10000,
+      })
       .toArray(),
     Promise.all(
-      Object.entries(collections).map(
-        async ([key, value]) =>
-          [
-            key,
-            await value.estimatedDocumentCount({ maxTimeMS: 10000 }),
-          ] as const,
-      ),
+      Object.entries(collections).map(async ([key, value]) => {
+        if (key === "trialUsage") {
+          const result = await value
+            .aggregate<{ total: number }>(
+              [
+                {
+                  $group: {
+                    _id: { $arrayElemAt: [{ $split: ["$_id", ":"] }, 0] },
+                  },
+                },
+                { $count: "total" },
+              ],
+              { maxTimeMS: 10000 },
+            )
+            .toArray();
+          return [key, result[0]?.total || 0] as const;
+        }
+        return [
+          key,
+          await value.estimatedDocumentCount({ maxTimeMS: 10000 }),
+        ] as const;
+      }),
     ),
   ]);
   const total = totals[0]?.total || 0;
@@ -107,37 +175,13 @@ export async function readAdminData(body: unknown): Promise<AdminData> {
     Math.max(0, Math.ceil(total / input.pageSize) - 1),
   );
   const direction = input.direction === "oldest" ? 1 : -1;
-  // Count only for the displayed page, across all days and access plans.
-  const enrich: Document[] =
-    table.key === "trialUsage"
-      ? [
-          {
-            $lookup: {
-              from: "messages",
-              localField: "userId",
-              foreignField: "userId",
-              pipeline: [{ $count: "total" }],
-              as: "messageCount",
-            },
-          },
-          {
-            $set: {
-              totalMessages: {
-                $ifNull: [{ $arrayElemAt: ["$messageCount.total", 0] }, 0],
-              },
-            },
-          },
-        ]
-      : [];
   const rows = await collection
     .aggregate<Record<string, unknown>>(
       [
-        ...prepare,
-        { $match: match },
+        ...filtered,
         { $sort: { [table.sort]: direction, _id: direction } },
         { $skip: page * input.pageSize },
         { $limit: input.pageSize },
-        ...enrich,
         {
           $project: Object.fromEntries(
             table.columns.map((column) => [column.key, 1]),
