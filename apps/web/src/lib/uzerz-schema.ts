@@ -35,7 +35,7 @@ export const adminTables: AdminTable[] = [
   },
   {
     key: "trialUsage",
-    label: "Trial usage",
+    label: "Legacy trial usage",
     sort: "sortAt",
     search: ["userId", "username", "name"],
     columns: [
@@ -54,7 +54,7 @@ export const adminTables: AdminTable[] = [
       { key: "name", label: "Name" },
       { ...created, label: "Registered" },
       { key: "lastActiveDay", label: "Last active day" },
-      { key: "premiumUntil", label: "Premium until", date: true },
+      { key: "premiumUntil", label: "Legacy access until", date: true },
       { key: "xp", label: "XP" },
       { key: "streak", label: "Streak" },
       { key: "longestStreak", label: "Longest streak" },
@@ -165,7 +165,9 @@ export const adminTables: AdminTable[] = [
       created,
       { key: "amount", label: "Amount (currency units)" },
       { key: "currency", label: "Currency" },
-      { key: "premiumUntil", label: "Premium until", date: true },
+      { key: "points", label: "Credits purchased" },
+      { key: "refundedAt", label: "Refunded", date: true },
+      { key: "premiumUntil", label: "Legacy access until", date: true },
       id,
     ],
   },

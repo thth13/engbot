@@ -30,6 +30,13 @@ import {
 } from "lucide-react";
 import type { AppData, Settings } from "@engbot/core/schema";
 import { settingsSchema, botScheduleSchema } from "@engbot/core/schema";
+import {
+  POINT_PACKS,
+  DAILY_AI_LIMIT,
+  PRICES,
+  MAX_SPEECH_POINTS,
+  formatPoints,
+} from "@engbot/core/pricing";
 import { loadTelegramWebApp } from "@/lib/telegram-web-app";
 import { trackWebEvent } from "@/lib/telemetry";
 import { trackEvent } from "@/lib/track-event";
@@ -135,6 +142,18 @@ export function CoachApp({ page }: { page: string }) {
     setData(value);
     setNeedsLogin(false);
   }, []);
+  useEffect(() => {
+    if (!authenticatedUserId) return;
+    const refresh = () => {
+      if (document.visibilityState === "visible") void reload().catch(() => {});
+    };
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", refresh);
+    return () => {
+      window.removeEventListener("focus", refresh);
+      document.removeEventListener("visibilitychange", refresh);
+    };
+  }, [authenticatedUserId, reload]);
   const login = useCallback(() => {
     loginRequest.current?.abort();
     const controller = new AbortController();
@@ -297,6 +316,13 @@ export function CoachApp({ page }: { page: string }) {
         <header className="topbar">
           <span>{title}</span>
           <div>
+            <Link
+              className="wallet-link"
+              href="/profile#wallet"
+              aria-label={`Balance: ${formatPoints(data.wallet.balanceUnits)} credits. Top up your balance.`}
+            >
+              {formatPoints(data.wallet.balanceUnits)} credits
+            </Link>
             <span className="streak">
               <Flame size={17} />
               {data.user.streak} {plural(data.user.streak, "day", "days")}
@@ -316,7 +342,7 @@ export function CoachApp({ page }: { page: string }) {
         </header>
         <main id="main-content" className="main-content">
           {!data.user.settings || page === "profile" ? (
-            <Profile data={data} reload={reload} />
+            <Profile data={data} reload={reload} bot={bot} />
           ) : page === "home" ? (
             <Dashboard data={data} />
           ) : page === "chat" ? (
@@ -656,11 +682,174 @@ function OnboardingChoices<T extends string | number>({
     </div>
   );
 }
-function Profile({
+function Wallet({
   data,
+  bot,
   reload,
 }: {
   data: AppData;
+  bot: string | null;
+  reload: () => Promise<void>;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  async function refresh() {
+    if (busy) return;
+    setBusy(true);
+    setError("");
+    try {
+      await reload();
+    } catch (e) {
+      setError(errorText(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+  const labels: Record<string, string> = {
+    welcome: "Welcome credits",
+    top_up: "Stars top-up",
+    text: "Text reply",
+    topic: "New topic",
+    exercise: "Exercise + answer check",
+    answer: "Answer check",
+    speech: "Bot voice",
+    voice_message: "Your voice + text reply",
+    payment_refund: "Payment refund",
+  };
+  return (
+    <section
+      id="wallet"
+      className="panel wallet-panel"
+      aria-labelledby="wallet-title"
+    >
+      <div className="wallet-heading">
+        <div>
+          <span className="eyebrow">YOUR LEARNING BALANCE</span>
+          <h2 id="wallet-title">
+            {formatPoints(data.wallet.balanceUnits)} credits
+          </h2>
+        </div>
+        <Button
+          className="secondary small"
+          busy={busy}
+          onClick={() => void refresh()}
+        >
+          Refresh balance
+        </Button>
+      </div>
+      <p>
+        Pay as you go. Credits do not expire. Your balance is shared by Telegram
+        and this app; XP tracks your progress separately.
+      </p>
+      {data.wallet.legacyPremiumUntil && (
+        <p className="helper">
+          Your previously purchased access is included until{" "}
+          {new Intl.DateTimeFormat("en-US", {
+            dateStyle: "medium",
+            timeStyle: "short",
+            timeZone: "UTC",
+          }).format(new Date(data.wallet.legacyPremiumUntil))}{" "}
+          UTC. Your credits are saved until then.
+        </p>
+      )}
+      {data.wallet.balanceUnits < 0 && (
+        <p className="error">
+          A refunded purchase left a negative balance. Your next top-up first
+          covers this amount.
+        </p>
+      )}
+      <div className="wallet-packs">
+        {POINT_PACKS.map((pack) =>
+          bot ? (
+            <a
+              className="wallet-pack"
+              href={`https://t.me/${bot}?start=points_${pack.stars}`}
+              key={pack.stars}
+            >
+              <strong>{number(pack.points)} credits</strong>
+              <span>{pack.stars} Telegram Stars</span>
+              <span className="text-link">Top up in Telegram →</span>
+            </a>
+          ) : (
+            <div className="wallet-pack" key={pack.stars}>
+              <strong>{number(pack.points)} credits</strong>
+              <span>{pack.stars} Telegram Stars</span>
+            </div>
+          ),
+        )}
+      </div>
+      <p className="helper">
+        {bot
+          ? "Choose a pack to open a Stars invoice in the bot. After paying, return here and refresh your balance."
+          : "Open your Telegram bot and send /balance to top up."}
+      </p>
+      <dl className="wallet-rates">
+        <div>
+          <dt>Text reply / new topic</dt>
+          <dd>{PRICES.text} credits</dd>
+        </div>
+        <div>
+          <dt>Exercise + one answer check</dt>
+          <dd>{PRICES.exercise} credits</dd>
+        </div>
+        <div>
+          <dt>Your voice</dt>
+          <dd>+{PRICES.transcription} credits/min</dd>
+        </div>
+        <div>
+          <dt>Bot voice</dt>
+          <dd>+{PRICES.speech} credits/min</dd>
+        </div>
+      </dl>
+      <p className="helper">
+        Audio is billed per started second. Voice replies reserve up to{" "}
+        {MAX_SPEECH_POINTS} extra credits and return the unused amount. Choose
+        text replies below to spend less. Listening again and daily text
+        reminders are free. Up to {DAILY_AI_LIMIT} AI requests per day.
+      </p>
+      <details className="wallet-history">
+        <summary>Recent balance activity</summary>
+        <ul>
+          {data.wallet.transactions.map((item) => (
+            <li key={item.id}>
+              <span>
+                {labels[item.kind] || "Learning activity"}
+                <small>
+                  {new Intl.DateTimeFormat("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    timeZone: data.user.settings?.timezone || "UTC",
+                  }).format(new Date(item.createdAt))}
+                </small>
+              </span>
+              <strong>
+                {item.deltaUnits > 0 ? "+" : ""}
+                {formatPoints(item.deltaUnits)}
+              </strong>
+            </li>
+          ))}
+        </ul>
+        <p className="helper">
+          Last 20 completed operations. Times use{" "}
+          {data.user.settings?.timezone || "UTC"}. Available credits exclude
+          requests still processing.
+        </p>
+      </details>
+      <div className="form-status" role="status">
+        {error && <span className="error">{error}</span>}
+      </div>
+    </section>
+  );
+}
+function Profile({
+  data,
+  reload,
+  bot,
+}: {
+  data: AppData;
+  bot: string | null;
   reload: () => Promise<void>;
 }) {
   const onboarding = !data.user.settings;
@@ -677,7 +866,7 @@ function Profile({
       }
     }
   }, [step, onboarding]);
-  const draftKey = `engbot:profile:v3:${data.user._id}`;
+  const draftKey = `engbot:profile:v4:${data.user._id}`;
   const [form, setForm] = useState<ProfileForm>(() => {
     try {
       const raw = sessionStorage.getItem(draftKey);
@@ -686,6 +875,7 @@ function Profile({
         if (restored.success)
           return {
             ...restored.data,
+            voicePricingVersion: 1,
             timezone: "Asia/Kolkata",
             nativeLanguage: languageLabel(restored.data.nativeLanguage),
           };
@@ -694,8 +884,14 @@ function Profile({
     return data.user.settings
       ? {
           ...data.user.settings,
+          voicePricingVersion: 1,
           timezone: "Asia/Kolkata",
-          replyMode: data.user.settings.replyMode || "voice",
+          replyMode:
+            (data.user.settings.replyMode ?? "voice") === "voice" &&
+            (data.user.settings.voicePricingVersion === 1 ||
+              data.wallet.legacyPremiumUntil)
+              ? "voice"
+              : "text",
           botSchedule: {
             hour: data.user.bot?.enabled ? (data.user.bot.hour ?? 19) : null,
           },
@@ -703,6 +899,7 @@ function Profile({
         }
       : {
           nativeLanguage: "Ukrainian",
+          voicePricingVersion: 1,
           englishLevel: "unknown",
           replyMode: "text",
           botSchedule: { hour: null },
@@ -715,9 +912,15 @@ function Profile({
   const savedForm = data.user.settings
     ? {
         ...data.user.settings,
+        voicePricingVersion: 1 as const,
         timezone: "Asia/Kolkata",
         nativeLanguage: languageLabel(data.user.settings.nativeLanguage),
-        replyMode: data.user.settings.replyMode || "voice",
+        replyMode:
+          (data.user.settings.replyMode ?? "voice") === "voice" &&
+          (data.user.settings.voicePricingVersion === 1 ||
+            data.wallet.legacyPremiumUntil)
+            ? "voice"
+            : "text",
         botSchedule: {
           hour: data.user.bot?.enabled ? (data.user.bot.hour ?? 19) : null,
         },
@@ -776,7 +979,7 @@ function Profile({
     }
     setBusy(true);
     try {
-      await api("profile", form);
+      await api("profile", { ...form, voicePricingVersion: 1 });
       await reload();
       setSaved(true);
     } catch (e) {
@@ -812,7 +1015,8 @@ function Profile({
       <p id="schedule-help" className="helper">
         Times are in India Standard Time (IST), which also sets your practice
         days. Daily messages arrive in Telegram after you start the bot. You can
-        turn them off anytime.
+        turn them off anytime. Scheduled reminders are free and always sent as
+        text.
       </p>
     </>
   );
@@ -830,6 +1034,7 @@ function Profile({
       >
         A few details will help your coach tailor explanations and exercises.
       </Heading>
+      {!onboarding && <Wallet data={data} bot={bot} reload={reload} />}
       <form
         ref={ref}
         className="panel profile-form"
@@ -878,16 +1083,27 @@ function Profile({
                   <OnboardingChoices
                     options={
                       [
-                        { value: "text", label: "Text messages" },
-                        { value: "voice", label: "Voice messages" },
+                        {
+                          value: "text",
+                          label: `Text · ${PRICES.text} credits`,
+                        },
+                        {
+                          value: "voice",
+                          label: `Voice · +${PRICES.speech} credits/min`,
+                        },
                       ] as const
                     }
                     value={form.replyMode || "text"}
                     onChange={(replyMode) => setForm({ ...form, replyMode })}
                   />
                   <p className="helper">
-                    You can send text or voice either way. Voice replies include
-                    a transcript button. Web conversations stay in text.
+                    Text with corrections costs {PRICES.text} credits. Your
+                    voice adds {PRICES.transcription} credits/min; bot voice
+                    adds {PRICES.speech} credits/min, billed per started second.
+                    Spoken replies reserve up to {MAX_SPEECH_POINTS} extra
+                    credits; unused credits are returned. Web conversations stay
+                    in text. In Telegram, voice replies include a free Show text
+                    button. Text replies have no buttons below them.
                   </p>
                 </>
               )}
@@ -913,9 +1129,10 @@ function Profile({
               provisional writing estimate, not a language certificate.
             </p>
             <label>
-              Telegram replies
+              Bot speaking
               <select
-                value={form.replyMode || "voice"}
+                aria-describedby="bot-speaking-help"
+                value={form.replyMode || "text"}
                 onChange={(e) =>
                   setForm({
                     ...form,
@@ -923,10 +1140,24 @@ function Profile({
                   })
                 }
               >
-                <option value="text">Text messages</option>
-                <option value="voice">Voice messages</option>
+                <option value="text">
+                  Text · {PRICES.text} credits per reply
+                </option>
+                <option value="voice">
+                  Voice · +{PRICES.speech} credits/min
+                </option>
               </select>
             </label>
+            <p className="helper" id="bot-speaking-help">
+              Your default reply format in Telegram, whether you send text or
+              voice. Text replies have no buttons; voice replies include Show
+              text for free. Web conversations stay in text. Text analysis:{" "}
+              {PRICES.text} credits. Incoming voice: +{PRICES.transcription}{" "}
+              credits/min. Bot voice: +{PRICES.speech} credits/min, up to{" "}
+              {MAX_SPEECH_POINTS} extra credits per reply. Audio is billed per
+              started second; unused reserved credits are returned. Saving
+              enables the selected reply format at these rates.
+            </p>
             {scheduleFields}
             <label>
               Why you’re learning English
@@ -1157,7 +1388,12 @@ function Chat({
           />
           <Button type="submit" busy={busy}>
             <Send size={17} />
-            <span>Send</span>
+            <span>
+              Send ·{" "}
+              {data.wallet.legacyPremiumUntil
+                ? "included"
+                : `${PRICES.text} credits`}
+            </span>
           </Button>
         </form>
         <div id="chat-status" className="form-status" role="status">
@@ -1438,14 +1674,17 @@ function Practice({
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
   const input = useRef<HTMLTextAreaElement>(null);
+  const practiceRequest = useRef<string | null>(null);
   async function start() {
     if (busy) return;
     setBusy(true);
     setError("");
     try {
+      practiceRequest.current ??= crypto.randomUUID();
       const params = new URLSearchParams(window.location.search);
       setTask(
         await api<Task>("practice", {
+          requestId: practiceRequest.current,
           sourceType:
             params.get("source") === "word" ||
             (!params.get("source") && data.counts.mistakes === 0)
@@ -1454,8 +1693,10 @@ function Practice({
           sourceId: params.get("id") || undefined,
         }),
       );
+      practiceRequest.current = null;
       setResult(null);
       setAnswer("");
+      await reload();
     } catch (e) {
       setError(errorText(e));
     } finally {
@@ -1499,10 +1740,15 @@ function Practice({
             <h2>Practice what you’ll actually use</h2>
             <p>
               Start with what’s due for review. Earn 20 XP for a correct answer
-              or 5 XP for trying.
+              or 5 XP for trying. An exercise costs {PRICES.exercise} credits
+              and includes one answer check.
             </p>
             <Button busy={busy} onClick={() => void start()}>
-              Get an exercise <ArrowRight size={17} />
+              Get an exercise ·{" "}
+              {data.wallet.legacyPremiumUntil
+                ? "included"
+                : `${PRICES.exercise} credits`}{" "}
+              <ArrowRight size={17} />
             </Button>
           </>
         ) : (
@@ -1561,7 +1807,11 @@ function Practice({
                 <small>Example answer</small>
                 <p>{result.answer}</p>
                 <Button busy={busy} onClick={() => void start()} type="button">
-                  Next exercise <ArrowRight size={17} />
+                  Next exercise ·{" "}
+                  {data.wallet.legacyPremiumUntil
+                    ? "included"
+                    : `${PRICES.exercise} credits`}{" "}
+                  <ArrowRight size={17} />
                 </Button>
               </div>
             ) : (

@@ -57,8 +57,39 @@ export async function database() {
       amount: number;
       currency: string;
       createdAt: Date;
-      premiumUntil: Date;
+      premiumUntil?: Date;
+      points?: number;
+      invoicePayload?: string;
+      refundedAt?: Date;
     }>("payments"),
+    walletOperations: db.collection<{
+      _id: string;
+      userId: string;
+      kind: string;
+      status: "reserved" | "settled" | "released";
+      amountUnits: number;
+      deltaUnits: number;
+      createdAt: Date;
+      updatedAt: Date;
+      leaseUntil?: Date;
+      owner?: string;
+      result?: unknown;
+    }>("walletOperations"),
+    aiUsage: db.collection<{
+      _id: string;
+      userId?: string;
+      operationId?: string;
+      model: string;
+      kind: "text" | "transcription" | "speech";
+      inputTokens?: number;
+      outputTokens?: number;
+      cachedTokens?: number;
+      reasoningTokens?: number;
+      seconds?: number;
+      estimatedCostUsd?: number;
+      estimated: boolean;
+      createdAt: Date;
+    }>("aiUsage"),
     telegramInbox: db.collection<{
       _id: string;
       updateId: number;
@@ -85,6 +116,7 @@ export async function database() {
       text: string;
       fileId?: string;
       duration?: number;
+      audio?: import("mongodb").Binary;
       createdAt: Date;
     }>("voiceReplies"),
     updates: db.collection<{

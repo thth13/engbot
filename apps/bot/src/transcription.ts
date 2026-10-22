@@ -1,5 +1,6 @@
 import { HttpError } from "@engbot/core/errors";
 import { telegramCall } from "./api";
+import { recordUsage } from "@engbot/core/usage";
 
 export interface IncomingVoice {
   file_id: string;
@@ -62,6 +63,19 @@ export async function transcribeVoice(voice: IncomingVoice): Promise<string> {
     );
     if (!transcription.ok) throw new Error("Transcription failed");
     const result = await transcription.json();
+    await recordUsage({
+      model: process.env.STT_MODEL || "gpt-4o-mini-transcribe",
+      kind: "transcription",
+      inputTokens: result.usage?.input_tokens,
+      outputTokens: result.usage?.output_tokens,
+      seconds: Math.max(1, voice.duration),
+      estimatedCostUsd: (
+        process.env.STT_MODEL || "gpt-4o-mini-transcribe"
+      ).startsWith("gpt-4o-mini-transcribe")
+        ? (Math.max(1, voice.duration) / 60) * 0.003
+        : undefined,
+      estimated: true,
+    });
     const text = typeof result.text === "string" ? result.text.trim() : "";
     if (!text)
       throw new HttpError(

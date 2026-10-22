@@ -29,7 +29,13 @@ await call("setMyCommands", {
   commands: [
     { command: "start", description: "Start" },
     { command: "topic", description: "New conversation topic" },
-    { command: "premium", description: "Choose a Premium plan" },
+    { command: "balance", description: "Credits balance and Stars top-ups" },
+    {
+      command: "speaking",
+      description: "Bot speaking · Text or voice replies",
+    },
+    { command: "text", description: "Text replies · 5 credits" },
+    { command: "voice", description: "Spoken replies · +50 credits/min" },
     { command: "paysupport", description: "Payment help" },
     { command: "pause", description: "Turn off daily conversations" },
     { command: "resume", description: "Turn on daily conversations" },

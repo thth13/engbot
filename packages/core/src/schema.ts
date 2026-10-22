@@ -1,6 +1,7 @@
 import { z } from "zod";
 export const settingsSchema = z.object({
   replyMode: z.enum(["text", "voice"]).optional(),
+  voicePricingVersion: z.literal(1).optional(),
   nativeLanguage: z.string().trim().min(2).max(40),
   englishLevel: z.enum(["A1", "A2", "B1", "B2", "C1", "unknown"]),
   goal: z.enum([
@@ -34,7 +35,7 @@ export const botScheduleSchema = z.object({
 });
 export const correctionSchema = z.object({
   learnerProfile: learnerProfileSchema.optional(),
-  reply: z.string().min(1).max(3000),
+  reply: z.string().min(1).max(600),
   corrected: z.string().max(3000),
   naturalVersion: z.string().max(3000),
   mistakes: z
@@ -135,6 +136,8 @@ export interface User {
     web?: OnboardingProgress;
   };
   premiumUntil?: Date;
+  balanceUnits?: number;
+  walletVersion?: number;
   trialExpiredNoticeAt?: Date;
   trialNoticeLeaseUntil?: Date;
   bot?: {
@@ -183,6 +186,7 @@ export interface Message {
   createdAt: Date;
 }
 export interface Exercise extends ExerciseContent {
+  billingVersion?: number;
   _id: string;
   userId: string;
   sourceId: string;
@@ -209,6 +213,16 @@ export type Serialized<T> = {
       : T[K];
 };
 export interface AppData {
+  wallet: {
+    balanceUnits: number;
+    legacyPremiumUntil: string | null;
+    transactions: {
+      id: string;
+      kind: string;
+      deltaUnits: number;
+      createdAt: string;
+    }[];
+  };
   user: Serialized<User>;
   mistakes: Serialized<Mistake>[];
   words: Serialized<Word>[];

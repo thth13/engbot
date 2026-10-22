@@ -13,6 +13,14 @@ try {
       .createIndex({ userId: 1, nextReview: 1, mastery: 1 });
   await db.collection("activity").createIndex({ userId: 1, day: -1 });
   await db.collection("payments").createIndex({ userId: 1, createdAt: -1 });
+  await db
+    .collection("walletOperations")
+    .createIndex({ userId: 1, createdAt: -1 });
+  await db
+    .collection("walletOperations")
+    .createIndex({ userId: 1, status: 1, leaseUntil: 1 });
+  await db.collection("aiUsage").createIndex({ userId: 1, createdAt: -1 });
+  await db.collection("aiUsage").createIndex({ operationId: 1 });
   await db.collection("telegramInbox").createIndex({ updateId: 1 });
   await db
     .collection("users")

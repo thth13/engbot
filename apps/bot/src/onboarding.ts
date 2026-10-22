@@ -1,4 +1,5 @@
 import { randomBytes } from "node:crypto";
+import { PRICES, MAX_SPEECH_POINTS } from "@engbot/core/pricing";
 import { eventLoggingEnabled, logEvent } from "@engbot/core/events";
 import { database } from "@engbot/core/db";
 import { notifyAdmins } from "@engbot/core/notifications";
@@ -37,17 +38,16 @@ const steps: { key: string; question: string; choices: readonly Choice[] }[] = [
   },
   {
     key: "replyMode",
-    question:
-      "How should I reply to you? You can send me text or voice either way.",
+    question: `Bot speaking: how should I reply by default? Text with corrections: ${PRICES.text} credits. Voice adds ${PRICES.speech} credits/min (up to ${MAX_SPEECH_POINTS} extra credits per reply), with a free Show text button. Text replies have no buttons. Your incoming voice adds ${PRICES.transcription} credits/min in either mode. Audio is billed per started second. Change this anytime in /settings → Bot speaking.`,
     choices: [
-      ["Text messages", "text"],
-      ["Voice messages", "voice"],
+      [`Text · ${PRICES.text} credits`, "text"],
+      [`Voice · +${PRICES.speech} credits/min`, "voice"],
     ],
   },
   {
     key: "hour",
     question:
-      "When should I start a conversation? I’ll send a new topic once a day at the selected time in India (IST). Use /pause to turn this off.",
+      "When should I start a conversation? I’ll send a free text reminder once a day at the selected time in India (IST). Use /pause to turn this off.",
     choices: [
       ["Morning · 09:00", 9],
       ["Afternoon · 13:00", 13],
@@ -73,10 +73,14 @@ export async function beginOnboarding(
   updateId: string,
 ): Promise<BotReply> {
   const draft: BotDraft = {
-    version: 3,
+    version: 4,
     revision: randomBytes(6).toString("hex"),
     step: 0,
-    settings: { ...user.settings, timezone: "Asia/Kolkata" },
+    settings: {
+      ...user.settings,
+      timezone: "Asia/Kolkata",
+      voicePricingVersion: 1,
+    },
   };
   const db = await database();
   const reply = onboardingReply(
@@ -142,7 +146,7 @@ export async function advanceOnboarding(
     return {
       text: "These buttons are no longer active. Use /settings to set up your profile or /topic for a new topic.",
     };
-  if (draft.version !== 3) return beginOnboarding(user, updateId);
+  if (draft.version !== 4) return beginOnboarding(user, updateId);
   const [, revision, action] = (data || "").split(":");
   if (data && (revision !== draft.revision || !data.startsWith("ob:")))
     return onboardingReply(

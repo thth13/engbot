@@ -4,7 +4,8 @@ import { database } from "./db";
 import { ai } from "./ai";
 import { HttpError } from "./errors";
 import { rateLimit } from "./users";
-import { reserveTrialMessage } from "./billing";
+import { paidOperation, walletSummary } from "./billing";
+import { PRICES, pointsToUnits } from "./pricing";
 import type { User, Review, Correction } from "./schema";
 const DAY = 86400000;
 export const dayKey = (date: Date, timezone: string) =>
@@ -96,24 +97,29 @@ export async function analyze(
   user: User,
   text: string,
   requestId: string,
+  prepaid = false,
 ): Promise<Correction> {
   const settings = requireSettings(user);
   const db = await database();
   const id = `${user._id}:${requestId}`;
   const existing = await db.messages.findOne({ _id: id });
   if (existing) return existing.analysis;
-  await reserveTrialMessage(user._id, requestId);
-  await rateLimit(user._id);
   const history = await conversationHistory(user._id);
-  const analysis = await ai.analyzeMessage(text, settings, history);
   const samples = [...history.map((entry) => entry.text), text].filter(
     (entry) => entry.trim().split(/\s+/).length >= 8,
   );
   const enoughEvidence =
     samples.length >= 3 && samples.join(" ").split(/\s+/).length >= 80;
-  const session = db.client.startSession();
-  try {
-    await session.withTransaction(async () => {
+  return paidOperation(
+    user._id,
+    `text:${requestId}`,
+    "text",
+    pointsToUnits(prepaid ? 0 : PRICES.text),
+    async () => {
+      await rateLimit(user._id);
+      return ai.analyzeMessage(text, settings, history);
+    },
+    async (analysis, session) => {
       if (await db.messages.findOne({ _id: id }, { session })) return;
       await db.messages.insertOne(
         { _id: id, userId: user._id, text, analysis, createdAt: new Date() },
@@ -177,13 +183,25 @@ export async function analyze(
         analysis.mistakes.length === 0,
         session,
       );
-    });
-  } finally {
-    await session.endSession();
-  }
-  return (await db.messages.findOne({ _id: id }))!.analysis;
+    },
+  );
 }
+
 export async function makeExercise(
+  user: User,
+  sourceType: "mistake" | "word",
+  sourceId: string | undefined,
+  requestId: string,
+) {
+  return paidOperation(
+    user._id,
+    `exercise-request:${requestId}`,
+    "exercise_request",
+    0,
+    () => createExercise(user, sourceType, sourceId),
+  );
+}
+async function createExercise(
   user: User,
   sourceType: "mistake" | "word",
   sourceId?: string,
@@ -208,19 +226,37 @@ export async function makeExercise(
     attemptedAt: { $exists: false },
   });
   if (pending) return publicExercise(pending);
-  await rateLimit(user._id);
-  const content = await ai.generateExercise(source, settings);
-  const exercise = {
-    ...content,
-    _id: randomUUID(),
-    userId: user._id,
-    sourceId: source._id,
-    sourceType,
-    createdAt: new Date(),
-  };
-  await db.exercises.insertOne(exercise);
+  // One generation per source/review cycle, even from concurrent tabs.
+  const previous = await db.exercises.findOne(
+    { userId: user._id, sourceId: source._id },
+    { sort: { createdAt: -1 } },
+  );
+  if (previous && !previous.attemptedAt) return publicExercise(previous);
+  const exercise = await paidOperation(
+    user._id,
+    `exercise:${source._id}:${previous?._id || "first"}`,
+    "exercise",
+    pointsToUnits(PRICES.exercise),
+    async () => {
+      await rateLimit(user._id);
+      const content = await ai.generateExercise(source, settings);
+      return {
+        ...content,
+        _id: randomUUID(),
+        userId: user._id,
+        sourceId: source._id,
+        sourceType,
+        createdAt: new Date(),
+        billingVersion: 1,
+      };
+    },
+    async (result, session) => {
+      await db.exercises.insertOne(result, { session });
+    },
+  );
   return publicExercise(exercise);
 }
+
 function publicExercise(exercise: import("./schema").Exercise) {
   return {
     id: exercise._id,
@@ -235,12 +271,17 @@ export async function submitAnswer(user: User, id: string, answer: string) {
   const exercise = await db.exercises.findOne({ _id: id, userId: user._id });
   if (!exercise) throw new HttpError(404, "Exercise not found.");
   if (exercise.result) return exercise.result;
-  await rateLimit(user._id);
-  const graded = await ai.gradeAnswer(exercise, answer, settings);
-  const result = { ...graded, answer: exercise.answer };
-  const session = db.client.startSession();
-  try {
-    await session.withTransaction(async () => {
+  return paidOperation(
+    user._id,
+    `answer:${id}`,
+    "answer",
+    0,
+    async () => {
+      await rateLimit(user._id);
+      const graded = await ai.gradeAnswer(exercise, answer, settings);
+      return { ...graded, answer: exercise.answer };
+    },
+    async (result, session) => {
       const updated = await db.exercises.updateOne(
         { _id: id, userId: user._id, attemptedAt: { $exists: false } },
         { $set: { result, attemptedAt: new Date() } },
@@ -256,23 +297,22 @@ export async function submitAnswer(user: User, id: string, answer: string) {
       if (item)
         await collection.updateOne(
           { _id: item._id, userId: user._id },
-          { $set: review(item, graded.correct) },
+          { $set: review(item, result.correct) },
           { session },
         );
       await reward(
         user._id,
-        graded.correct ? 20 : 5,
+        result.correct ? 20 : 5,
         "exercises",
-        graded.correct,
+        result.correct,
         session,
       );
-    });
-  } finally {
-    await session.endSession();
-  }
-  return (await db.exercises.findOne({ _id: id, userId: user._id }))!.result;
+    },
+  );
 }
+
 export async function snapshot(user: User) {
+  const wallet = await walletSummary(user._id);
   const db = await database();
   const filter = { userId: user._id };
   const today = dayKey(new Date(), user.settings?.timezone || "UTC");
@@ -301,7 +341,12 @@ export async function snapshot(user: User) {
       DAY
     : Infinity;
   return {
-    user: { ...user, streak: daysSince > 1 ? 0 : user.streak },
+    wallet,
+    user: {
+      ...user,
+      balanceUnits: wallet.balanceUnits,
+      streak: daysSince > 1 ? 0 : user.streak,
+    },
     mistakes,
     words,
     messages: messages.reverse(),
@@ -326,7 +371,7 @@ export async function conversationHistory(userId: string) {
       .limit(12)
       .toArray(),
   ]);
-  return [
+  const history = [
     ...messages.map((m) => ({
       text: m.text,
       reply: m.analysis.reply,
@@ -337,20 +382,38 @@ export async function conversationHistory(userId: string) {
     .sort((a, b) => a.at.getTime() - b.at.getTime())
     .slice(-16)
     .map(({ text, reply }) => ({ text, reply }));
+  let remaining = 24000;
+  return history
+    .reverse()
+    .filter((entry) => {
+      remaining -= entry.text.length + entry.reply.length;
+      return remaining >= 0;
+    })
+    .reverse();
 }
 export async function conversationStarter(user: User, id: string) {
   const db = await database();
   const existing = await db.starters.findOne({ _id: id });
   if (existing) return existing.text;
-  await rateLimit(user._id);
-  const { text } = await ai.startConversation(
-    requireSettings(user),
-    await conversationHistory(user._id),
+  return paidOperation(
+    user._id,
+    `topic:${id}`,
+    "topic",
+    pointsToUnits(PRICES.topic),
+    async () => {
+      await rateLimit(user._id);
+      const { text } = await ai.startConversation(
+        requireSettings(user),
+        await conversationHistory(user._id),
+      );
+      return text;
+    },
+    async (text, session) => {
+      await db.starters.updateOne(
+        { _id: id },
+        { $setOnInsert: { userId: user._id, text, createdAt: new Date() } },
+        { upsert: true, session },
+      );
+    },
   );
-  await db.starters.updateOne(
-    { _id: id },
-    { $setOnInsert: { userId: user._id, text, createdAt: new Date() } },
-    { upsert: true },
-  );
-  return (await db.starters.findOne({ _id: id }))!.text;
 }

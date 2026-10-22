@@ -1,6 +1,7 @@
 import { database } from "./db";
 import { HttpError } from "./errors";
-import { requireAccess } from "./billing";
+import { ensureWallet } from "./billing";
+import { DAILY_AI_LIMIT } from "./pricing";
 export async function ensureUser(id: string, name: string, username?: string) {
   const { users } = await database();
   await users.updateOne(
@@ -19,10 +20,10 @@ export async function ensureUser(id: string, name: string, username?: string) {
     },
     { upsert: true },
   );
+  await ensureWallet(id);
   return id;
 }
 export async function rateLimit(userId: string) {
-  await requireAccess(userId);
   const { limits } = await database();
   const key = `${userId}:${Math.floor(Date.now() / 86400000)}`;
   const item = await limits.findOneAndUpdate(
@@ -30,9 +31,9 @@ export async function rateLimit(userId: string) {
     { $inc: { count: 1 } },
     { upsert: true, returnDocument: "after" },
   );
-  if ((item?.count || 0) > 100)
+  if ((item?.count || 0) > DAILY_AI_LIMIT)
     throw new HttpError(
       429,
-      "You’ve reached today’s AI request limit. Come back tomorrow.",
+      `You’ve reached today’s ${DAILY_AI_LIMIT} AI request limit. Come back tomorrow; your credits do not expire.`,
     );
 }

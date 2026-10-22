@@ -199,11 +199,17 @@ async function handle(
       const data = z
         .object({
           sourceType: z.enum(["mistake", "word"]),
+          requestId: z.string().uuid(),
           sourceId: z.string().max(100).optional(),
         })
         .parse(body);
       return NextResponse.json(
-        await makeExercise(user, data.sourceType, data.sourceId),
+        await makeExercise(
+          user,
+          data.sourceType,
+          data.sourceId,
+          data.requestId,
+        ),
       );
     }
     if (path === "practice/answer") {
